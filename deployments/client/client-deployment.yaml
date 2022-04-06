@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert --volumes hostPath
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: client
+  name: client
+spec:
+  replicas: $NUM_NODES
+  selector:
+    matchLabels:
+      io.kompose.service: client
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert --volumes hostPath
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: client
+    spec:
+      containers:
+        - image: bradyp123/docker_compose_1_client:latest
+          name: client
+          ports:
+          - containerPort: 10001
+          volumeMounts:
+            - mountPath: /var/run/docker.sock
+              name: client-hostpath0
+      restartPolicy: Always
+      volumes:
+        - hostPath:
+            path: /var/run/docker.sock
+          name: client-hostpath0
+status: {}

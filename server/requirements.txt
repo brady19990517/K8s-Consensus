@@ -1,0 +1,6 @@
+docker-py==1.10.6
+numpy==1.19.5
+networkx==2.5.1
+ortools==9.0.9048
+kubernetes==23.3.0
+p2pnetwork==1.1
