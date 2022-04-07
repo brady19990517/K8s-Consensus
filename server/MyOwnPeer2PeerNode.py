@@ -146,3 +146,12 @@ class MyOwnPeer2PeerNode (Node):
         except Exception as e:
             self.debug_print("TcpServer.connect_with_node: Could not connect with node. (" + str(e) + ")")
             return False
+
+    def param_init(self, max_iter):
+        self.z_storage = [None] * max_iter
+        self.flag_storage = [None] * max_iter
+        for i in range(max_iter):
+            self.flag_storage[i] = {}
+            self.z_storage[i] = {}
+            for client in self.client_hostname_list:
+                self.flag_storage[i][client] = -1
