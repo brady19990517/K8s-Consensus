@@ -9,11 +9,11 @@ class MyOwnPeer2PeerNode (Node):
     def __init__(self, host, port, id=None, callback=None, max_connections=0):
         super(MyOwnPeer2PeerNode, self).__init__(host, port, id, callback, max_connections)
         print("MyPeer2PeerNode: Started")
-        self.client_hostname_list= []
-        self.message_received= []
-        self.flag_storage = []#List of dictionary
-        self.z_storage = []#List of dictionary
-        self.start_consensus = None
+        self.client_hostname_list = []
+        self.message_received = []
+        self.flag_storage = []
+        self.z_storage = []
+        self.start_consensus_time = None
         self.start_consensus_flag = False
 
     # all the methods below are called when things happen in the network.
@@ -54,29 +54,14 @@ class MyOwnPeer2PeerNode (Node):
         init = ast.literal_eval(data)
         if "client_msg" in init:
             init = list(init["client_msg"])
-            # print(init)
             client = str(init[0])
             iteration = int(init[1])
             flag = int(init[2])
             z = float(init[3])
-            # print("client",client,"time",time,"flag",flag)
             self.flag_storage[iteration][client]=flag
             self.z_storage[iteration][client]=z
-            # print(self.flag_storage)
-            # if time in self.flag_storage and init.get(time)[0]==1:
-            #     # print(self.flag_storage[time])
-            #     self.flag_storage[time]+=1
-            # elif time not in self.flag_storage:
-            #     if init.get(time)==1:
-            #         self.flag_storage[time] = 1
-            #     else:
-            #         self.flag_storage[time] = 0
-            # if time in self.y_storage:
-            #     self.y_storage.get(time).append([node,init.get(time)[1]])
-            # else:
-            #     self.y_storage = [[node,init.get(time)[1]]]
         elif "start_consensus" in init and self.start_consensus_flag==False:
-            self.start_consensus = time.time()
+            self.start_consensus_time = time.time()
             self.start_consensus_flag = True
         
     def node_disconnect_with_outbound_node(self, node):
@@ -119,15 +104,6 @@ class MyOwnPeer2PeerNode (Node):
                 sock.close()
                 return True
 
-            # Fix bug: Cannot connect with nodes that are already connected with us!
-            #          Send message and close the socket.
-            # for node in self.nodes_inbound:
-            #     if node.host == host and node.id == connected_node_id:
-            #         print("connect_with_node: This node (" + node.id + ") is already connected with us.")
-            #         sock.send("CLOSING: Already having a connection together".encode('utf-8'))
-            #         sock.close()
-            #         return True
-
             thread_client = self.create_new_connection(sock, connected_node_id, host, port)
             thread_client.start()
 
@@ -155,3 +131,11 @@ class MyOwnPeer2PeerNode (Node):
             self.z_storage[i] = {}
             for client in self.client_hostname_list:
                 self.flag_storage[i][client] = -1
+
+    def reset(self):
+        self.client_hostname_list= []
+        self.message_received= []
+        self.flag_storage = []#List of dictionary
+        self.z_storage = []#List of dictionary
+        self.start_consensus_time = None
+        self.start_consensus_flag = False

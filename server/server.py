@@ -120,9 +120,11 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
         if count_one == num_clients:
             print("[Consensus] Consensus Reached")    
             break
-    total_time = time.time() - server_node.start_consensus
-    print("[Consensus] Consensus takes %s seconds" % (total_time))
-    print("[Consensus] Ending at iteration: ", cur_iter-1)
+
+    consensus_time = time.time() - server_node.start_consensus_time
+    total_iteration = cur_iter-1
+    print("[Consensus] Consensus takes %s seconds" % (consensus_time))
+    print("[Consensus] Ending at iteration: ", total_iteration)
     print("[Consensus] All ratio ended at: ", json.dumps(server_node.z_storage[cur_iter-1]))
     print("[Consensus] End Consensus")
     # Close client node
@@ -131,7 +133,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     time.sleep(20)
     server_node.stop()
     # is_complete = subprocess.check_output(["kubectl","delete", "deployments/client"])
-    return total_time, cur_iter-1, diameter
+    return consensus_time, total_iteration, diameter
 
     # ################Job/Task Distribute#################
     # print("---Start Job Assigning---")
@@ -249,8 +251,8 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
 
 
 if __name__ == "__main__":
+    #---------- Record Consensus Status ----------
     random.seed(1234)
-    np.random.seed(1234)
     # seeds = random.sample(range(1, 100), 10)
     # seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
     seeds = [15,2]
@@ -258,18 +260,17 @@ if __name__ == "__main__":
     nodes = [30]
     consensus_time = []
     total_iteration = []
-    #Start server num_clients
+    #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
     server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, 1)
     server_node.start()
-    
+    # TODO: check if sleep is necessary here
     time.sleep(10)
-
+    #---------- Start Running Trials ----------
     for num_clients in nodes:
-        #NUM_CLIENTS: need to know before hand
-        num_clients = num_clients
-        print(num_clients)
-        tmplstr = "client-deployment"+str(num_clients)
+        print("Number of clients: ", num_clients)
+        # Create and run client deployment files
+        tmplstr = "client-deployment-"+str(num_clients)
         with open('../deployments/client/client-deployment.yaml', 'r') as file :
             client_tmpl = file.read()
         filedata = client_tmpl.replace('$NUM_NODES',str(num_clients))
@@ -277,21 +278,21 @@ if __name__ == "__main__":
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
-
-
-        for i,seed in enumerate(seeds):
+        # Trials
+        for i, seed in enumerate(seeds):
             random.seed(seed)
             np.random.seed(seed)
             print("Iteration: ", i)
-            c_time, iteration, diameter = start_server(num_clients,server_node)
-            consensus_time.append(c_time)
+            consensus_time, iteration, diameter = start_server(num_clients,server_node)
+            consensus_time.append(consensus_time)
             total_iteration.append(iteration)
-            print(c_time)
+            print(consensus_time)
             print(iteration)
-            content = str(num_clients) +  " " + str(i) + " " + str(c_time) + " " + str(iteration) + " " + str(diameter) + "\n"
-            server_node.client_hostname_list=[]
+            content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
             # myfile = open('../log.txt', 'a')
             # myfile.write(content)
             # myfile.close()
+            server_node.reset()
+            # TODO: check if sleep is necessary here
             time.sleep(20)
     
