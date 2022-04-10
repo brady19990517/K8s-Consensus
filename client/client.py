@@ -22,7 +22,7 @@ def start_client(node):
     node.connect_with_node(SERVER_SERVICE_IP, DEFAULT_PORT)
     # Wait for server message
     while len(node.message_received)==0:
-        print("Waiting for server message")
+        print("[Client] Waiting for server message...")
         time.sleep(5)
     init = node.message_received[0]
     # Connecting outbound nodes
@@ -52,20 +52,55 @@ def start_client(node):
     bar_zd_k = None
     i=0
 
+    #Logging
+    local_comp_time_list = []
+    msg_ex_xy_time_list = []
+    msg_ex_z_time_list = []
+
+    local_comp_cpu_list = []
+    local_comp_mem_list = []
+    local_comp_disk_list = []
+    local_comp_net_in_list = []
+    local_comp_net_out_list = []
+
+    msg_ex_cpu_list = []
+    msg_ex_mem_list = []
+    msg_ex_disk_list = []
+    msg_ex_net_in_list = []
+    msg_ex_net_out_list = []
+
+
+
     #---------- Consensus Algorithm ----------
     # Send consensus start message to server
     node.send_to_nodes(str({"start_consensus":None}))
     while i < max_iter and can_terminate == 0 and not node.new_trial:
         
+        #---------- Logging ----------
         net_stat = psutil.net_io_counters()
         net_in_1 = net_stat.bytes_recv
         net_out_1 = net_stat.bytes_sent
 
-        local_calc_time = 0
-        exchange_xy_time = 0
-        exchange_z_time = 0
+        local_comp_time = 0
+        msg_ex_xy_time = 0
+        msg_ex_z_time = 0
 
-        local_calc_time_start = time.time()
+        local_comp_cpu = 0
+        local_comp_mem = 0
+        local_comp_disk = 0
+        local_comp_net_in = 0
+        local_comp_net_out = 0
+
+        msg_ex_cpu = 0
+        msg_ex_mem = 0
+        msg_ex_disk = 0
+        msg_ex_net_in = 0
+        msg_ex_net_out = 0
+
+        local_comp1_time_start = time.time()
+        #---------- End Logging ----------
+
+
         if flag == 0:
             if i % mod_factor == 0 and i > 0:
                 if M - m < epsilon:
@@ -94,32 +129,45 @@ def start_client(node):
         # Exchange Parameters
         bar_xd_k = bar_xd_k * (1/num_out_neigh)
         bar_yd_k = bar_yd_k * (1/num_out_neigh)
-        local_calc_time += (time.time()-local_calc_time_start)
-        print("Local Computation: ", psutil.cpu_percent(interval=None,percpu=True))
-        print("Local Computation Memory usage: ", psutil.virtual_memory().percent)
-        print("Local Computation Disk usage: ", psutil.disk_usage('/').percent)
 
+        #---------- Logging ----------
+        local_comp_time += (time.time()-local_comp1_time_start)
+        local_comp_cpu = psutil.cpu_percent(interval=None,percpu=True)
+        local_comp_mem = psutil.virtual_memory().percent
+        local_comp_disk = psutil.disk_usage('/').percent
+        # print("Local Computation: ", psutil.cpu_percent(interval=None,percpu=True))
+        # print("Local Computation Memory usage: ", psutil.virtual_memory().percent)
+        # print("Local Computation Disk usage: ", psutil.disk_usage('/').percent)
         net_stat = psutil.net_io_counters()
         net_in_2 = net_stat.bytes_recv
         net_out_2 = net_stat.bytes_sent
         net_in = round((net_in_2 - net_in_1) / 1024, 3)
         net_out = round((net_out_2 - net_out_1) / 1024, 3)
-        print(f"Local Computation net-usage:\nIN: {net_in} KB/s, OUT: {net_out} KB/s")
+        local_comp_net_in = net_in
+        local_comp_net_out = net_out
+        # print(f"Local Computation net-usage:\nIN: {net_in} KB/s, OUT: {net_out} KB/s")
+        #---------- End Logging ----------
         
         
+        
+        #---------- Logging ----------
         net_stat = psutil.net_io_counters()
         net_in_1 = net_stat.bytes_recv
         net_out_1 = net_stat.bytes_sent
+        msg_ex_xy_time_start = time.time()
+        #---------- End Logging ----------
 
-        exchange_xy_time_start = time.time()
         node.send_to_nodes(str({"exchange_xy":{i:[bar_xd_k,bar_yd_k]}}), exclude=[server_addr])
         while True:
             if i in node.xy_storage and len(node.xy_storage[i]) == num_in_neigh:
                 # print("All message at timestamp ",i," receievd: ",node.xy_storage[i])
                 break
-        exchange_xy_time += (time.time()-exchange_xy_time_start)
 
-        local_calc_time_start = time.time()
+        #---------- Logging ----------
+        msg_ex_xy_time = (time.time()-msg_ex_xy_time_start)
+        local_comp2_time_start = time.time()
+        #---------- End Logging ----------
+
         if not is_self_connected:
             bar_xd_k = 0
             bar_yd_k = 0
@@ -128,34 +176,41 @@ def start_client(node):
             bar_yd_k += float(y)
         # Calculate z locally
         bar_zd_k = bar_xd_k / bar_yd_k 
-        local_calc_time += (time.time()-local_calc_time_start)
- 
 
-      
-        exchange_z_time_start = time.time()
+        #---------- Logging ----------
+        local_comp_time += (time.time()-local_comp2_time_start)
+        msg_ex_z_time_start = time.time()
+        #---------- End Logging ----------
+
         # Send z to all out nieghbours
         node.send_to_nodes(str({"exchange_z":{i:bar_zd_k}}), exclude=[server_addr])
         #Collect all z from in neighbours
         # for m in node.message_received:
-        wait_z_time = time.time()
         while True:
             if i in node.z_storage and len(node.z_storage[i]) == num_in_neigh:
                 # print("All message at timestamp ",i," receievd: ",node.z_storage[i])
                 break
-        exchange_z_time += (time.time()-exchange_z_time_start)
-        print("Message Exchange: ", psutil.cpu_percent(interval=None,percpu=True))
-        print("Message Exchange Memory usage: ", psutil.virtual_memory().percent)
-        print("Message Exchange Disk usage: ", psutil.disk_usage('/').percent)
 
+        #---------- Logging ----------
+        msg_ex_z_time = (time.time()-msg_ex_z_time_start)
+        msg_ex_cpu = psutil.cpu_percent(interval=None,percpu=True)
+        msg_ex_mem = psutil.virtual_memory().percent
+        msg_ex_disk = psutil.disk_usage('/').percent
+        # print("Message Exchange: ", psutil.cpu_percent(interval=None,percpu=True))
+        # print("Message Exchange Memory usage: ", psutil.virtual_memory().percent)
+        # print("Message Exchange Disk usage: ", psutil.disk_usage('/').percent)
         net_stat = psutil.net_io_counters()
         net_in_2 = net_stat.bytes_recv
         net_out_2 = net_stat.bytes_sent
         net_in = round((net_in_2 - net_in_1) / 1024, 3)
         net_out = round((net_out_2 - net_out_1) / 1024, 3)
-        print(f"Message Exchange net-usage:\nIN: {net_in} KB/s, OUT: {net_out} KB/s")
+        msg_ex_net_in = net_in
+        msg_ex_net_out = net_out
+        # print(f"Message Exchange net-usage:\nIN: {net_in} KB/s, OUT: {net_out} KB/s")
+        #---------- End Logging ----------
 
         
-        local_calc_time_start = time.time()
+        local_comp_time_start = time.time()
         B = np.asarray(node.z_storage[i])
         if is_self_connected:
             B = np.append(B,bar_zd_k)
@@ -165,18 +220,49 @@ def start_client(node):
             m = 0
         else:
             m = np.nanmin(b_min)
-        local_calc_time += (time.time()-local_calc_time_start)
+        local_comp_time += (time.time()-local_comp_time_start)
         
        
         # Send iteration result to server
         node.send_to_nodes(str({"client_msg":[HOSTNAME,i,flag,bar_zd_k]}))
 
         
-        if i % 50 == 0:
-            print("Iteration: ", i, "Local calculation time: ", local_calc_time, 
-                "Exchange message time (xy): ", exchange_xy_time, "Exchange message time (z): ", exchange_z_time)
+        #
+        local_comp_time_list.append(local_comp_time)
+        msg_ex_xy_time_list.append(msg_ex_xy_time)
+        msg_ex_z_time_list.append(msg_ex_z_time)
+
+        local_comp_cpu_list.append(local_comp_cpu)
+        local_comp_mem_list.append(local_comp_mem)
+        local_comp_disk_list.append(local_comp_disk)
+        local_comp_net_in_list.append(local_comp_net_in)
+        local_comp_net_out_list.append(local_comp_net_out)
+
+        msg_ex_cpu_list.append(msg_ex_cpu)
+        msg_ex_mem_list.append(msg_ex_mem)
+        msg_ex_disk_list.append(msg_ex_disk)
+        msg_ex_net_in_list.append(msg_ex_net_in)
+        msg_ex_net_out_list.append(msg_ex_net_out)
+        if i % 20 == 0:
+            print("Iteration: ", i)
+            print("Local computation time: ", local_comp_time)
+            print("Exchange message time (xy): ", msg_ex_xy_time)
+            print("Exchange message time (z): ", msg_ex_z_time)
+
+            print("Local Computation (cpu): ", local_comp_cpu)
+            print("Local Computation (mem): ", local_comp_mem)
+            print("Local Computation (disk): ", local_comp_disk)
+            print("Local Computation (net_in): ", local_comp_net_in)
+            print("Local Computation (net_out): ", local_comp_net_out)
+
+            print("Exchange message (cpu): ", msg_ex_cpu)
+            print("Exchange message (mem): ", msg_ex_mem)
+            print("Exchange message (disk): ", msg_ex_disk)
+            print("Exchange message (net_in): ", msg_ex_net_in)
+            print("Exchange message (net_out): ", msg_ex_net_out)
 
         i = i + 1
+    return local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list
 
 if __name__ == "__main__":
     #---------- Client Initialisation ----------
@@ -201,7 +287,8 @@ if __name__ == "__main__":
                 time.sleep(5)
             print("A new trial has begun")
             node.new_trial = False
-            start_client(node)
+            local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list = start_client(node)
+            
 
     # while node.new_trial:
     #     node.new_trial = False

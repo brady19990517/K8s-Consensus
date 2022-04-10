@@ -4,3 +4,5 @@ rebuild
 docker-compose up --scale client=3 --build
 
 docker-compose push
+
+sudo scp -r /Users/bradypeng/Desktop/MPhilProject/Week9/src cyp25@caelum-102.cl.cam.ac.uk:/home/cyp25

@@ -33,16 +33,12 @@ class MyOwnPeer2PeerNode (Node):
         print("outbound_node_connected (" + self.id + "): " + node.id)
         
     def inbound_node_connected(self, node):
-        if node.id == socket.gethostbyname('caelum-102'):
-            self.server_conn_inbound = node
-            print("get server inbound connection")
         print("inbound_node_connected: (" + self.id + "): " + node.id)
 
     def node_disconnected(self, node):
         """While the same nodeconnection class is used, the class itself is not able to
            determine if it is a inbound or outbound connection. This function is making
            sure the correct method is used."""
-        print("node_disconnected called")
         self.debug_print("node_disconnected: " + node.id)
 
         if node in self.nodes_inbound:
@@ -80,9 +76,9 @@ class MyOwnPeer2PeerNode (Node):
                 self.z_storage[iteration] = [float(init.get(iteration))]
         elif "stop" in init:
             self.new_trial = True
-            print("Waiting for current trial to stop")
+            print("[Client] Waiting for current trial to stop...")
             time.sleep(10)
-            print("Resetting")
+            print("[Client] Resetting parameters for new trial...")
             self.reset()
             
 
@@ -156,20 +152,16 @@ class MyOwnPeer2PeerNode (Node):
         new_outbound_nodes = []
         for node in self.nodes_outbound:
             if node.id == socket.gethostbyname('caelum-102'):
-                print("Dont want to disconnect with server (outbound)")
                 new_outbound_nodes.append(node)
                 continue
-            print(node)
             node.stop()
         self.nodes_outbound = new_outbound_nodes
         # Disconnect with all inbound nodes except server for a new trial
         new_inbound_nodes = []
         for node in self.nodes_inbound:
             if node.id == socket.gethostbyname('caelum-102'):
-                print("Dont want to disconnect with server (inbound)")
                 new_inbound_nodes.append(node)
                 continue
-            print(node)
             node.stop()
         self.nodes_inbound = new_inbound_nodes
 

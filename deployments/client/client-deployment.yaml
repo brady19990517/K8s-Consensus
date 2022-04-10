@@ -27,6 +27,9 @@ spec:
       containers:
         - image: bradyp123/docker_compose_1_client:latest
           name: client
+          resources:
+            requests:
+              cpu: 1
           ports:
           - containerPort: 10001
           volumeMounts:
