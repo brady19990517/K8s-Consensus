@@ -43,16 +43,20 @@ class MyOwnPeer2PeerNode (Node):
         self.client_hostname_list.append(node.id)
 
     def inbound_node_disconnected(self, node):
-        # print("inbound_node_disconnected: (" + self.id + "): " + node.id)
-        return None
+        """This method is invoked when a node, that was previously connected with us, is in a disconnected
+           state."""
+        self.debug_print("inbound_node_disconnected: " + node.id)
+        if self.callback is not None:
+            self.callback("inbound_node_disconnected", self, node, {})
+
     def outbound_node_disconnected(self, node):
         # print("outbound_node_disconnected: (" + self.id + "): " + node.id)
         return None
 
     def node_message(self, node, data):
-        # print("node_message (" + self.id + ") from " + node.id + ": " + str(data))
         init = ast.literal_eval(data)
         if "client_msg" in init:
+            # print("node_message (" + self.id + ") from " + node.id + ": " + str(data))
             init = list(init["client_msg"])
             client = str(init[0])
             iteration = int(init[1])
@@ -133,7 +137,6 @@ class MyOwnPeer2PeerNode (Node):
                 self.flag_storage[i][client] = -1
 
     def reset(self):
-        self.client_hostname_list= []
         self.message_received= []
         self.flag_storage = []#List of dictionary
         self.z_storage = []#List of dictionary

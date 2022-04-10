@@ -110,6 +110,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
             elif f==1:
                 count+=1
                 count_one+=1
+            print(server_node.flag_storage[cur_iter])
         if count == num_clients:
             if(cur_iter%10==0):
                 print("[Consensus] Currently at iteration: ", cur_iter)
@@ -130,8 +131,8 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     # Close client node
     server_node.send_to_nodes(str({"stop":0}))
     # TODO: check if sleep is necessary here
-    time.sleep(20)
-    server_node.stop()
+    time.sleep(5)
+    # server_node.stop()
     # is_complete = subprocess.check_output(["kubectl","delete", "deployments/client"])
     return consensus_time, total_iteration, diameter
 
@@ -257,12 +258,10 @@ if __name__ == "__main__":
     # seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
     seeds = [15,2]
     # nodes = [30,40,50,60,70,80,90,100]
-    nodes = [30]
-    consensus_time = []
-    total_iteration = []
+    nodes = [20,30]
     #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
-    server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, 1)
+    server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)
     server_node.start()
     # TODO: check if sleep is necessary here
     time.sleep(10)
@@ -284,14 +283,12 @@ if __name__ == "__main__":
             np.random.seed(seed)
             print("Iteration: ", i)
             consensus_time, iteration, diameter = start_server(num_clients,server_node)
-            consensus_time.append(consensus_time)
-            total_iteration.append(iteration)
             print(consensus_time)
             print(iteration)
             content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
-            # myfile = open('../log.txt', 'a')
-            # myfile.write(content)
-            # myfile.close()
+            myfile = open('../log.txt', 'a')
+            myfile.write(content)
+            myfile.close()
             server_node.reset()
             # TODO: check if sleep is necessary here
             time.sleep(20)

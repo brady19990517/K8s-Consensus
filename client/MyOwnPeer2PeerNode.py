@@ -12,7 +12,9 @@ class MyOwnPeer2PeerNode (Node):
         self.message_received= []
         self.xy_storage = {}
         self.z_storage = {}
-        self.new_iteration = False
+        self.new_trial = True
+        self.server_conn_outbound = None
+        self.server_conn_inbound = None
 
     # all the methods below are called when things happen in the network.
     # implement your network node behavior to create the required functionality.
@@ -21,11 +23,6 @@ class MyOwnPeer2PeerNode (Node):
             converted to JSON that is send over to the other node. exclude list gives all the nodes to which this
             data should not be sent."""
         self.message_count_send = self.message_count_send + 1
-        # for n in self.nodes_inbound:
-        #     if n in exclude:
-        #         self.debug_print("Node send_to_nodes: Excluding node in sending the message")
-        #     else:
-        #         self.send_to_node(n, data)
         for n in self.nodes_outbound:
             if n in exclude:
                 print("Node send_to_nodes: Excluding node in sending the message")
@@ -36,7 +33,25 @@ class MyOwnPeer2PeerNode (Node):
         print("outbound_node_connected (" + self.id + "): " + node.id)
         
     def inbound_node_connected(self, node):
+        if node.id == socket.gethostbyname('caelum-102'):
+            self.server_conn_inbound = node
+            print("get server inbound connection")
         print("inbound_node_connected: (" + self.id + "): " + node.id)
+
+    def node_disconnected(self, node):
+        """While the same nodeconnection class is used, the class itself is not able to
+           determine if it is a inbound or outbound connection. This function is making
+           sure the correct method is used."""
+        print("node_disconnected called")
+        self.debug_print("node_disconnected: " + node.id)
+
+        if node in self.nodes_inbound:
+            del self.nodes_inbound[self.nodes_inbound.index(node)]
+            self.inbound_node_disconnected(node)
+
+        if node in self.nodes_outbound:
+            del self.nodes_outbound[self.nodes_outbound.index(node)]
+            self.outbound_node_disconnected(node)
 
     def inbound_node_disconnected(self, node):
         print("inbound_node_disconnected: (" + self.id + "): " + node.id)
@@ -64,8 +79,13 @@ class MyOwnPeer2PeerNode (Node):
             else:
                 self.z_storage[iteration] = [float(init.get(iteration))]
         elif "stop" in init:
-            self.new_iteration = True
-        
+            self.new_trial = True
+            print("Waiting for current trial to stop")
+            time.sleep(10)
+            print("Resetting")
+            self.reset()
+            
+
         
     def node_disconnect_with_outbound_node(self, node):
         print("node wants to disconnect with oher outbound node: (" + self.id + "): " + node.id)
@@ -107,20 +127,13 @@ class MyOwnPeer2PeerNode (Node):
                 sock.close()
                 return True
 
-            # Fix bug: Cannot connect with nodes that are already connected with us!
-            #          Send message and close the socket.
-            # for node in self.nodes_inbound:
-            #     if node.host == host and node.id == connected_node_id:
-            #         print("connect_with_node: This node (" + node.id + ") is already connected with us.")
-            #         sock.send("CLOSING: Already having a connection together".encode('utf-8'))
-            #         sock.close()
-            #         return True
-
             thread_client = self.create_new_connection(sock, connected_node_id, host, port)
             thread_client.start()
 
             self.nodes_outbound.append(thread_client)
             self.outbound_node_connected(thread_client)
+            if host == socket.gethostbyname('caelum-102'):
+                self.server_conn = thread_client
 
             # If reconnection to this host is required, it will be added to the list!
             if reconnect:
@@ -134,3 +147,33 @@ class MyOwnPeer2PeerNode (Node):
         except Exception as e:
             self.debug_print("TcpServer.connect_with_node: Could not connect with node. (" + str(e) + ")")
             return False
+    
+    def reset(self):
+        self.message_received= []
+        self.xy_storage = {}
+        self.z_storage = {}
+        # Disconnect with all outbound nodes except server for a new trial
+        new_outbound_nodes = []
+        for node in self.nodes_outbound:
+            if node.id == socket.gethostbyname('caelum-102'):
+                print("Dont want to disconnect with server (outbound)")
+                new_outbound_nodes.append(node)
+                continue
+            print(node)
+            node.stop()
+        self.nodes_outbound = new_outbound_nodes
+        # Disconnect with all inbound nodes except server for a new trial
+        new_inbound_nodes = []
+        for node in self.nodes_inbound:
+            if node.id == socket.gethostbyname('caelum-102'):
+                print("Dont want to disconnect with server (inbound)")
+                new_inbound_nodes.append(node)
+                continue
+            print(node)
+            node.stop()
+        self.nodes_inbound = new_inbound_nodes
+
+
+
+
+    
