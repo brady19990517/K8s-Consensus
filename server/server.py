@@ -255,10 +255,10 @@ if __name__ == "__main__":
     #---------- Record Consensus Status ----------
     random.seed(1234)
     # seeds = random.sample(range(1, 100), 10)
-    # seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
-    seeds = [15]
+    seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
+    # seeds = [15]
     # nodes = [30,40,50,60,70,80,90,100]
-    nodes = [20,30,40,50]
+    nodes = [20,30,40,50,60,70]
     #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
     server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)

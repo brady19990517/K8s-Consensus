@@ -85,7 +85,7 @@ class MyOwnPeer2PeerNode (Node):
             self.start_consensus_time = time.time()
             self.start_consensus_flag = True
         elif "client_result" in init:
-            init = list(init["client_msg"])
+            init = list(init["client_result"])
             client = str(init[0])
         
             self.local_comp_time_list[client] = list(init[1])
