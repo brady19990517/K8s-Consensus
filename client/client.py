@@ -288,7 +288,7 @@ if __name__ == "__main__":
             print("A new trial has begun")
             node.new_trial = False
             local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list = start_client(node)
-            
+            node.send_to_nodes(str({"client_result":[HOSTNAME,local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list]}))
 
     # while node.new_trial:
     #     node.new_trial = False

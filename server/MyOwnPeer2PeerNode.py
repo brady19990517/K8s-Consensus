@@ -16,6 +16,23 @@ class MyOwnPeer2PeerNode (Node):
         self.start_consensus_time = None
         self.start_consensus_flag = False
 
+        #Logging
+        self.local_comp_time_list = {}
+        self.msg_ex_xy_time_list = {}
+        self.msg_ex_z_time_list = {}
+
+        self.local_comp_cpu_list = {}
+        self.local_comp_mem_list = {}
+        self.local_comp_disk_list = {}
+        self.local_comp_net_in_list = {}
+        self.local_comp_net_out_list = {}
+
+        self.msg_ex_cpu_list = {}
+        self.msg_ex_mem_list = {}
+        self.msg_ex_disk_list = {}
+        self.msg_ex_net_in_list = {}
+        self.msg_ex_net_out_list = {}
+
     # all the methods below are called when things happen in the network.
     # implement your network node behavior to create the required functionality.
     def send_to_nodes(self, data, exclude=[]):
@@ -67,6 +84,25 @@ class MyOwnPeer2PeerNode (Node):
         elif "start_consensus" in init and self.start_consensus_flag==False:
             self.start_consensus_time = time.time()
             self.start_consensus_flag = True
+        elif "client_result" in init:
+            init = list(init["client_msg"])
+            client = str(init[0])
+        
+            self.local_comp_time_list[client] = list(init[1])
+            self.msg_ex_xy_time_list[client] = list(init[2])
+            self.msg_ex_z_time_list[client] = list(init[3])
+
+            self.local_comp_cpu_list[client] = list(init[4])
+            self.local_comp_mem_list[client] = list(init[5])
+            self.local_comp_disk_list[client] = list(init[6])
+            self.local_comp_net_in_list[client] = list(init[7])
+            self.local_comp_net_out_list[client] = list(init[8])
+
+            self.msg_ex_cpu_list[client] = list(init[9])
+            self.msg_ex_mem_list[client] = list(init[10])
+            self.msg_ex_disk_list[client] = list(init[11])
+            self.msg_ex_net_in_list[client] = list(init[12])
+            self.msg_ex_net_out_list[client] = list(init[13])
         
     def node_disconnect_with_outbound_node(self, node):
         print("node wants to disconnect with oher outbound node: (" + self.id + "): " + node.id)
@@ -142,3 +178,18 @@ class MyOwnPeer2PeerNode (Node):
         self.z_storage = []#List of dictionary
         self.start_consensus_time = None
         self.start_consensus_flag = False
+        self.local_comp_time_list = {}
+        self.msg_ex_xy_time_list = {}
+        self.msg_ex_z_time_list = {}
+
+        self.local_comp_cpu_list = {}
+        self.local_comp_mem_list = {}
+        self.local_comp_disk_list = {}
+        self.local_comp_net_in_list = {}
+        self.local_comp_net_out_list = {}
+
+        self.msg_ex_cpu_list = {}
+        self.msg_ex_mem_list = {}
+        self.msg_ex_disk_list = {}
+        self.msg_ex_net_in_list = {}
+        self.msg_ex_net_out_list = {}

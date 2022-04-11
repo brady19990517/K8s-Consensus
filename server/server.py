@@ -32,7 +32,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     while len(server_node.client_hostname_list) < num_clients:
         print("Not yet Receieve all client")
         time.sleep(5)
-    print("Client Hostnames: ", server_node.client_hostname_list)
+    print("Client Hostnames: ", "[", len(server_node.client_hostname_list),"]",server_node.client_hostname_list)
     # Connect to all client
     for client in server_node.client_hostname_list:
         server_node.connect_with_node(client, DEFAULT_PORT)
@@ -45,7 +45,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     AdjMatrix, diameter = gen_graph(num_clients,False)
     # Generate Workload
     x_0 = gen_workload(workload_min, workload_max, num_clients)
-    print("x_0:", np.transpose(x_0)[0])
+    # print("x_0:", np.transpose(x_0)[0])
     # Generate Capacity
     y_0=None
     if use_variable_capacities == 0:
@@ -55,7 +55,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
         y1 = 3 * np.ones((math.ceil(num_clients / 2), 1))
         y2 = 5 * np.ones((math.floor(num_clients / 2), 1))
         y_0 = np.concatenate((y1,y2)) 
-    print("y_0:", np.transpose(y_0)[0])
+    # print("y_0:", np.transpose(y_0)[0])
     # Generate max and min   
     M = x_0.max()
     m = x_0.min()
@@ -110,7 +110,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
             elif f==1:
                 count+=1
                 count_one+=1
-            print(server_node.flag_storage[cur_iter])
+            # print(server_node.flag_storage[cur_iter])
         if count == num_clients:
             if(cur_iter%10==0):
                 print("[Consensus] Currently at iteration: ", cur_iter)
@@ -256,9 +256,9 @@ if __name__ == "__main__":
     random.seed(1234)
     # seeds = random.sample(range(1, 100), 10)
     # seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
-    seeds = [15,2]
+    seeds = [15]
     # nodes = [30,40,50,60,70,80,90,100]
-    nodes = [20,30]
+    nodes = [20,30,40,50]
     #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
     server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)
@@ -283,12 +283,34 @@ if __name__ == "__main__":
             np.random.seed(seed)
             print("Iteration: ", i)
             consensus_time, iteration, diameter = start_server(num_clients,server_node)
-            print(consensus_time)
-            print(iteration)
             content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
+            print("Results: ",content)
+
             myfile = open('../log.txt', 'a')
             myfile.write(content)
+            
+            while len(server_node.msg_ex_net_out_list) < num_clients:
+                print("Wait for all clients sending back results..")
+                time.sleep(3)
+            
+            myfile.write("\n".join(server_node.local_comp_time_list))
+            myfile.write("\n".join(server_node.msg_ex_xy_time_list))
+            myfile.write("\n".join(server_node.msg_ex_z_time_list))
+            myfile.write("\n".join(server_node.local_comp_cpu_list))
+            myfile.write("\n".join(server_node.local_comp_mem_list))
+            myfile.write("\n".join(server_node.local_comp_disk_list))
+            myfile.write("\n".join(server_node.local_comp_net_in_list))
+            myfile.write("\n".join(server_node.local_comp_net_out_list))
+            myfile.write("\n".join(server_node.msg_ex_cpu_list))
+            myfile.write("\n".join(server_node.msg_ex_mem_list))
+            myfile.write("\n".join(server_node.msg_ex_disk_list))
+            myfile.write("\n".join(server_node.msg_ex_net_in_list))
+            myfile.write("\n".join(server_node.msg_ex_net_out_list))
+
+            print("Server Finish logging")
+
             myfile.close()
+
             server_node.reset()
             # TODO: check if sleep is necessary here
             time.sleep(20)
