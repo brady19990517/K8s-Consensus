@@ -77,7 +77,7 @@ class MyOwnPeer2PeerNode (Node):
         elif "stop" in init:
             self.new_trial = True
             print("[Client] Waiting for current trial to stop...")
-            time.sleep(10)
+            time.sleep(20)
             print("[Client] Resetting parameters for new trial...")
             self.reset()
             
@@ -149,22 +149,26 @@ class MyOwnPeer2PeerNode (Node):
         self.xy_storage = {}
         self.z_storage = {}
         # Disconnect with all outbound nodes except server for a new trial
-        new_outbound_nodes = []
-        for node in self.nodes_outbound:
-            if node.id == socket.gethostbyname('caelum-102'):
-                new_outbound_nodes.append(node)
-                continue
-            node.stop()
-        self.nodes_outbound = new_outbound_nodes
-        # Disconnect with all inbound nodes except server for a new trial
-        new_inbound_nodes = []
-        for node in self.nodes_inbound:
-            if node.id == socket.gethostbyname('caelum-102'):
-                new_inbound_nodes.append(node)
-                continue
-            node.stop()
-        self.nodes_inbound = new_inbound_nodes
-
+        try:
+            new_outbound_nodes = []
+            print("Reset Called")
+            for node in self.nodes_outbound:
+                print("In the loop")
+                if node.id == socket.gethostbyname('caelum-102'):
+                    new_outbound_nodes.append(node)
+                    continue
+                node.stop()
+            self.nodes_outbound = new_outbound_nodes
+            # Disconnect with all inbound nodes except server for a new trial
+            new_inbound_nodes = []
+            for node in self.nodes_inbound:
+                if node.id == socket.gethostbyname('caelum-102'):
+                    new_inbound_nodes.append(node)
+                    continue
+                node.stop()
+            self.nodes_inbound = new_inbound_nodes
+        except Exception as e:
+            print(e)
 
 
 
