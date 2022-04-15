@@ -94,7 +94,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     server_node.send_to_nodes(str({"server_msg":msg}))
     #---------- Record Consensus Status ----------
     print("[Consensus] Start")
-    start_time_flag = False
+    start_time = time.time()
     cur_iter = 0
     while True:
         count = 0
@@ -103,9 +103,9 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
             if f < 0:
                 break
             elif f == 0:
-                if not start_time_flag:
-                    start_time_flag = True
-                    start_time = time.time()
+                if time.time() - start_time > 60:
+                    print("Something happened... exit current trial")
+                    return 0, None, None, None
                 count+=1
             elif f==1:
                 count+=1
@@ -134,7 +134,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     time.sleep(5)
     # server_node.stop()
     # is_complete = subprocess.check_output(["kubectl","delete", "deployments/client"])
-    return consensus_time, total_iteration, diameter
+    return 1, consensus_time, total_iteration, diameter
 
     # ################Job/Task Distribute#################
     # print("---Start Job Assigning---")
@@ -282,36 +282,37 @@ if __name__ == "__main__":
             random.seed(seed)
             np.random.seed(seed)
             print("Iteration: ", i)
-            consensus_time, iteration, diameter = start_server(num_clients,server_node)
-            content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
-            print("Results: ",content)
+            flag, consensus_time, iteration, diameter = start_server(num_clients,server_node)
+            if flag == 1:
+                content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
+                print("Results: ",content)
 
-            myfile = open('../log.txt', 'a')
-            myfile.write(content)
-            
-            while len(server_node.msg_ex_net_out_list) < num_clients:
-                print(len(server_node.msg_ex_net_out_list))
-                print(server_node.msg_ex_net_out_list)
-                print("Wait for all clients sending back results..")
-                time.sleep(5)
-            
-            myfile.write(json.dumps(server_node.local_comp_time_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_xy_time_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_z_time_list)+ '\n')
-            myfile.write(json.dumps(server_node.local_comp_cpu_list)+ '\n')
-            myfile.write(json.dumps(server_node.local_comp_mem_list)+ '\n')
-            myfile.write(json.dumps(server_node.local_comp_disk_list)+ '\n')
-            myfile.write(json.dumps(server_node.local_comp_net_in_list)+ '\n')
-            myfile.write(json.dumps(server_node.local_comp_net_out_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_cpu_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_mem_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_disk_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_net_in_list)+ '\n')
-            myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
+                myfile = open('../log.txt', 'a')
+                myfile.write(content)
+                
+                while len(server_node.msg_ex_net_out_list) < num_clients:
+                    # print(len(server_node.msg_ex_net_out_list))
+                    # print(server_node.msg_ex_net_out_list)
+                    # print("Wait for all clients sending back results..")
+                    time.sleep(5)
+                
+                myfile.write(json.dumps(server_node.local_comp_time_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_xy_time_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_z_time_list)+ '\n')
+                myfile.write(json.dumps(server_node.local_comp_cpu_list)+ '\n')
+                myfile.write(json.dumps(server_node.local_comp_mem_list)+ '\n')
+                myfile.write(json.dumps(server_node.local_comp_disk_list)+ '\n')
+                myfile.write(json.dumps(server_node.local_comp_net_in_list)+ '\n')
+                myfile.write(json.dumps(server_node.local_comp_net_out_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_cpu_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_mem_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_disk_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_net_in_list)+ '\n')
+                myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
 
-            print("Server Finish logging")
+                print("Server Finish logging")
 
-            myfile.close()
+                myfile.close()
 
             server_node.reset()
             # TODO: check if sleep is necessary here

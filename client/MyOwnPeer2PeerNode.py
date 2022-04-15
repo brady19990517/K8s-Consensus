@@ -6,7 +6,7 @@ import time
 class MyOwnPeer2PeerNode (Node):
 
     # Python class constructor
-    def __init__(self, host, port, id=None, callback=None, max_connections=0):
+    def __init__(self, host, port, id=None, callback=None, max_connections=0, cond=None,run_lock=None):
         super(MyOwnPeer2PeerNode, self).__init__(host, port, id, callback, max_connections)
         print("MyPeer2PeerNode: Started")
         self.message_received= []
@@ -15,6 +15,8 @@ class MyOwnPeer2PeerNode (Node):
         self.new_trial = True
         self.server_conn_outbound = None
         self.server_conn_inbound = None
+        self.cond = cond
+        self.run_lock = run_lock
 
     # all the methods below are called when things happen in the network.
     # implement your network node behavior to create the required functionality.
@@ -59,27 +61,49 @@ class MyOwnPeer2PeerNode (Node):
         # print("node_message (" + self.id + ") from " + node.id + ": " + str(data))
         init = ast.literal_eval(data)
         if "server_msg" in init:
+            self.cond.acquire()
             self.message_received.append(dict(init["server_msg"]))
+            self.cond.notify()
+            self.cond.release()
         elif "exchange_xy" in init:
-            init = dict(init["exchange_xy"])
-            iteration = int(list(init.keys())[0])
-            if iteration in self.xy_storage:
-                self.xy_storage.get(iteration).append(init.get(iteration))
-            else:
-                self.xy_storage[iteration] = [init.get(iteration)]
+            # print("[node] acquiring lock...")
+            self.cond.acquire()
+            try:
+                # print("[node] updating...")
+                init = dict(init["exchange_xy"])
+                iteration = int(list(init.keys())[0])
+                if iteration in self.xy_storage:
+                    self.xy_storage.get(iteration).append(init.get(iteration))
+                else:
+                    self.xy_storage[iteration] = [init.get(iteration)]
+
+                if len(self.xy_storage[iteration]) == len(self.nodes_inbound)-1:
+                    # print("[node] notifying main thread ...")
+                    self.cond.notify()
+            except Exception as e:
+                print(e)
+            finally:
+                # print("[node] releasing lock ...")
+                self.cond.release()
+
         elif "exchange_z" in init:
+            self.cond.acquire()
             init = dict(init["exchange_z"])
             iteration = int(list(init.keys())[0])
             if iteration in self.z_storage:
                 self.z_storage.get(iteration).append(float(init.get(iteration)))
             else:
                 self.z_storage[iteration] = [float(init.get(iteration))]
+            if len(self.z_storage[iteration]) == len(self.nodes_inbound)-1:
+                self.cond.notify()
+            self.cond.release()
         elif "stop" in init:
             self.new_trial = True
+            self.run_lock.acquire()
             print("[Client] Waiting for current trial to stop...")
-            time.sleep(20)
             print("[Client] Resetting parameters for new trial...")
             self.reset()
+            self.run_lock.release()
             
 
         
@@ -148,6 +172,7 @@ class MyOwnPeer2PeerNode (Node):
         self.message_received= []
         self.xy_storage = {}
         self.z_storage = {}
+
         # Disconnect with all outbound nodes except server for a new trial
         try:
             new_outbound_nodes = []

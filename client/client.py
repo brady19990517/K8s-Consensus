@@ -9,6 +9,7 @@ import ast
 import math
 import numpy as np
 import psutil
+import threading
 
 from MyOwnPeer2PeerNode import MyOwnPeer2PeerNode
 
@@ -16,14 +17,27 @@ DOCKER_SOCKET_URL = 'unix://var/run/docker.sock'
 DEFAULT_PORT = 10001
 is_node_alive = False
 
-def start_client(node):
+def start_client(node,cond,run_lock):
     #---------- Establishing Connections ----------
     SERVER_SERVICE_IP = socket.gethostbyname('caelum-102')
     node.connect_with_node(SERVER_SERVICE_IP, DEFAULT_PORT)
     # Wait for server message
-    while len(node.message_received)==0:
+    cond.acquire()
+    while True:
+        if len(node.message_received)!=0:
+            break
         print("[Client] Waiting for server message...")
-        time.sleep(5)
+        val = cond.wait()
+        if val:
+            continue
+        else:
+            break
+    cond.release()
+
+    # while len(node.message_received)==0:
+    #     print("[Client] Waiting for server message...")
+    #     time.sleep(5)
+
     init = node.message_received[0]
     # Connecting outbound nodes
     is_self_connected = False
@@ -36,6 +50,7 @@ def start_client(node):
     server_addr = init["server_addr"]
     # node.connect_with_node(server_addr, DEFAULT_PORT)
     # TODO: check if sleep is necessary here
+
     time.sleep(20)
 
     #---------- Parameter Initialisation ----------
@@ -160,10 +175,29 @@ def start_client(node):
         node.send_to_nodes(str({"exchange_xy":{i:[bar_xd_k,bar_yd_k]}}), exclude=[server_addr])
 
         try:
-            while True and not node.new_trial:
+            # print("[Main thread] acquiring lock....")
+            cond.acquire()
+            while True:
                 if i in node.xy_storage and len(node.xy_storage[i]) == num_in_neigh:
-                    # print("All message at timestamp ",i," receievd: ",node.xy_storage[i])
+                    # print("[Main thread] condition satisfy....")
                     break
+               
+                # print("[Main thread] Not yet received all xy message, wait for 30 sec..")
+                # wait with a maximum timeout of 10 sec
+
+                val = cond.wait(30)
+                if val:
+                    # print("[Main thread] notification received all xy message received.")
+                    continue
+                else:
+                    # print("[Main thread] xy message waiting timeout...")
+                    break
+            # print("[Main thread] realease lock....")       
+            cond.release()
+            # while True and not node.new_trial:
+            #     if i in node.xy_storage and len(node.xy_storage[i]) == num_in_neigh:
+            #         # print("All message at timestamp ",i," receievd: ",node.xy_storage[i])
+            #         break
 
             #---------- Logging ----------
             msg_ex_xy_time = (time.time()-msg_ex_xy_time_start)
@@ -188,10 +222,24 @@ def start_client(node):
             node.send_to_nodes(str({"exchange_z":{i:bar_zd_k}}), exclude=[server_addr])
             #Collect all z from in neighbours
             # for m in node.message_received:
-            while True and not node.new_trial:
+            
+            
+            # print("[Main thread] acquiring lock....")
+            cond.acquire()
+            while True:
                 if i in node.z_storage and len(node.z_storage[i]) == num_in_neigh:
-                    # print("All message at timestamp ",i," receievd: ",node.z_storage[i])
                     break
+                val = cond.wait(30)
+                if val:
+                    continue
+                else:
+                    break
+            cond.release()
+
+            # while True and not node.new_trial:
+            #     if i in node.z_storage and len(node.z_storage[i]) == num_in_neigh:
+            #         # print("All message at timestamp ",i," receievd: ",node.z_storage[i])
+            #         break
 
             #---------- Logging ----------
             msg_ex_z_time = (time.time()-msg_ex_z_time_start)
@@ -267,8 +315,6 @@ def start_client(node):
         except Exception as e:
             if node.new_trial:
                 print("Exception Occured: ", e)
-            else:
-                raise e
 
     return local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list
 
@@ -276,15 +322,17 @@ if __name__ == "__main__":
     #---------- Client Initialisation ----------
     HOSTNAME = socket.gethostbyname(os.environ.get("HOSTNAME"))
     print(HOSTNAME)
-    node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)
+    cond = threading.Condition()
+    run_lock = threading.Condition()
+    node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME, cond=cond, run_lock=run_lock)
     node.start()
     print("Number of cores in system", psutil.cpu_count())
     print("\nNumber of physical cores in system",)
     print("First CPU Usage: ", psutil.cpu_percent(interval=None,percpu=True))
     print("First Memory usage: ", psutil.virtual_memory().percent)
     print("First Disk usage: ", psutil.disk_usage('/').percent)
+    
     while True:
-        time.sleep(5)
         while node.new_trial:
             print("Waiting for reset")
             while not (len(node.nodes_inbound) <= 1 and len(node.nodes_outbound) <= 1):
@@ -294,9 +342,11 @@ if __name__ == "__main__":
                 print(not (len(node.nodes_inbound) <= 1 and len(node.nodes_outbound) <= 1))
                 time.sleep(5)
             print("A new trial has begun")
+            run_lock.acquire()
             node.new_trial = False
-            local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list = start_client(node)
+            local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list = start_client(node,cond,run_lock)
             print("Function returned")
+            run_lock.release()
             node.send_to_nodes(str({"client_result":[HOSTNAME,local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list]}))
 
     # while node.new_trial:
