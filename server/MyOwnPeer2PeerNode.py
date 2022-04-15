@@ -110,7 +110,7 @@ class MyOwnPeer2PeerNode (Node):
             self.msg_ex_net_in_list[client] = list(init[12])
             self.msg_ex_net_out_list[client] = list(init[13])
         elif "client_reset" in init:
-            client_reset_num += 1
+            self.client_reset_num += 1
         
     def node_disconnect_with_outbound_node(self, node):
         print("node wants to disconnect with oher outbound node: (" + self.id + "): " + node.id)
