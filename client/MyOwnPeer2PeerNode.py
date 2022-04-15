@@ -17,6 +17,7 @@ class MyOwnPeer2PeerNode (Node):
         self.server_conn_inbound = None
         self.cond = cond
         self.run_lock = run_lock
+        self.start_consensus = False
 
     # all the methods below are called when things happen in the network.
     # implement your network node behavior to create the required functionality.
@@ -104,6 +105,8 @@ class MyOwnPeer2PeerNode (Node):
             print("[Client] Resetting parameters for new trial...")
             self.reset()
             self.run_lock.release()
+        elif "start" in init:
+            self.start_consensus = True
             
 
         
@@ -172,7 +175,7 @@ class MyOwnPeer2PeerNode (Node):
         self.message_received= []
         self.xy_storage = {}
         self.z_storage = {}
-
+        self.start_consensus = False
         # Disconnect with all outbound nodes except server for a new trial
         try:
             new_outbound_nodes = []

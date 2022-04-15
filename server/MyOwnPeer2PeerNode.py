@@ -82,8 +82,12 @@ class MyOwnPeer2PeerNode (Node):
             self.flag_storage[iteration][client]=flag
             self.z_storage[iteration][client]=z
         elif "start_consensus" in init and self.start_consensus_flag==False:
-            self.start_consensus_time = time.time()
-            self.start_consensus_flag = True
+            self.ready_consensus += 1
+            if self.ready_consensus == len(self.nodes_outbound):
+                print("All clients ready, start consensus")
+                self.send_to_nodes(str({"start":0}))
+                self.start_consensus_time = time.time()
+                self.start_consensus_flag = True
         elif "client_result" in init:
             init = list(init["client_result"])
             client = str(init[0])
