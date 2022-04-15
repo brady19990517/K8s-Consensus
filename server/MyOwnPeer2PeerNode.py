@@ -14,6 +14,7 @@ class MyOwnPeer2PeerNode (Node):
         self.flag_storage = []
         self.z_storage = []
         self.ready_consensus = 0
+        self.client_reset_num = 0
         self.start_consensus_time = None
         self.start_consensus_flag = False
 
@@ -108,6 +109,8 @@ class MyOwnPeer2PeerNode (Node):
             self.msg_ex_disk_list[client] = list(init[11])
             self.msg_ex_net_in_list[client] = list(init[12])
             self.msg_ex_net_out_list[client] = list(init[13])
+        elif "client_reset" in init:
+            client_reset_num += 1
         
     def node_disconnect_with_outbound_node(self, node):
         print("node wants to disconnect with oher outbound node: (" + self.id + "): " + node.id)
@@ -199,3 +202,4 @@ class MyOwnPeer2PeerNode (Node):
         self.msg_ex_net_in_list = {}
         self.msg_ex_net_out_list = {}
         self.ready_consensus = 0
+        self.client_reset_num = 0

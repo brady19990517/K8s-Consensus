@@ -344,6 +344,8 @@ if __name__ == "__main__":
                 print("Start of trial, number of outbound: ",len(node.nodes_outbound))
                 print(not (len(node.nodes_inbound) <= 1 and len(node.nodes_outbound) <= 1))
                 time.sleep(5)
+            # Tell server client has successfully reset
+            node.send_to_nodes(str({"client_reset":None}))
             print("A new trial has begun")
             run_lock.acquire()
             node.new_trial = False
