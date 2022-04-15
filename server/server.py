@@ -259,8 +259,8 @@ if __name__ == "__main__":
     # seeds = random.sample(range(1, 100), 10)
     seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
     # seeds = [15]
-    # nodes = [30,40,50,60,70,80,90,100]
-    nodes = [50,60,70]
+    nodes = [20,30,40,50,60,70,80,90,100]
+    # nodes = [50,60,70]
     #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
     server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)
@@ -313,9 +313,10 @@ if __name__ == "__main__":
                 myfile.write(json.dumps(server_node.msg_ex_net_in_list)+ '\n')
                 myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
 
-                print("Server Finish logging")
+                
 
                 myfile.close()
+            print("Server Finish logging")
             while server_node.client_reset_num < num_clients:
                 time.sleep(2)
             print("[Server] all client reset")
