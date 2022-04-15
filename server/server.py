@@ -103,7 +103,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
             if f < 0:
                 break
             elif f == 0:
-                if time.time() - start_time > 60:
+                if time.time() - start_time > 180:
                     print("Something happened... exit current trial")
                     server_node.send_to_nodes(str({"stop":0}))
                     time.sleep(5)
@@ -260,7 +260,7 @@ if __name__ == "__main__":
     seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
     # seeds = [15]
     # nodes = [30,40,50,60,70,80,90,100]
-    nodes = [20,30,40,50,60,70]
+    nodes = [50,60,70]
     #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
     server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)
@@ -292,7 +292,8 @@ if __name__ == "__main__":
                 myfile = open('../log.txt', 'a')
                 myfile.write(content)
                 
-                while len(server_node.msg_ex_net_out_list) < num_clients:
+                # Number of client logs received
+                while len(server_node.msg_ex_net_out_list) < 10:
                     # print(len(server_node.msg_ex_net_out_list))
                     # print(server_node.msg_ex_net_out_list)
                     # print("Wait for all clients sending back results..")
@@ -315,8 +316,6 @@ if __name__ == "__main__":
                 print("Server Finish logging")
 
                 myfile.close()
-            else:
-                i = i - 1
 
             server_node.reset()
             # TODO: check if sleep is necessary here
