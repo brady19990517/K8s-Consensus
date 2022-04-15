@@ -13,6 +13,7 @@ class MyOwnPeer2PeerNode (Node):
         self.message_received = []
         self.flag_storage = []
         self.z_storage = []
+        self.ready_consensus = 0
         self.start_consensus_time = None
         self.start_consensus_flag = False
 
@@ -197,3 +198,4 @@ class MyOwnPeer2PeerNode (Node):
         self.msg_ex_disk_list = {}
         self.msg_ex_net_in_list = {}
         self.msg_ex_net_out_list = {}
+        self.ready_consensus = 0
