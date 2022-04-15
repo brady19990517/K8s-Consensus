@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 print("Server Finish logging")
 
                 myfile.close()
-            while server_node.client_reset_num == num_clients:
+            while server_node.client_reset_num < num_clients:
                 time.sleep(2)
             print("[Server] all client reset")
             server_node.reset()
