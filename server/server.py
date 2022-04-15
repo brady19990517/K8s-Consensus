@@ -105,6 +105,8 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
             elif f == 0:
                 if time.time() - start_time > 60:
                     print("Something happened... exit current trial")
+                    server_node.send_to_nodes(str({"stop":0}))
+                    time.sleep(5)
                     return 0, None, None, None
                 count+=1
             elif f==1:
@@ -278,9 +280,9 @@ if __name__ == "__main__":
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
         # Trials
-        for i, seed in enumerate(seeds):
-            random.seed(seed)
-            np.random.seed(seed)
+        for i in range(len(seeds)):
+            random.seed(seeds[i])
+            np.random.seed(seeds[i])
             print("Iteration: ", i)
             flag, consensus_time, iteration, diameter = start_server(num_clients,server_node)
             if flag == 1:
@@ -313,6 +315,8 @@ if __name__ == "__main__":
                 print("Server Finish logging")
 
                 myfile.close()
+            else:
+                i = i - 1
 
             server_node.reset()
             # TODO: check if sleep is necessary here
