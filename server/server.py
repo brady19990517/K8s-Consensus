@@ -26,7 +26,7 @@ URL_REQUEST = 'https://v4.ident.me'
 DEFAULT_PORT = 10001
 
 
-def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workload_max=1000,epsilon=1e-5,use_variable_capacities = 0):
+def start_server(num_clients, server_node, HOSTNAME, max_iter=1000, workload_min=100,workload_max=1000,epsilon=1e-5,use_variable_capacities = 0):
     #---------- Establishing Connections ----------
     # Waiting for connection from client
     while len(server_node.client_hostname_list) < num_clients:
@@ -137,6 +137,7 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     # server_node.stop()
     # is_complete = subprocess.check_output(["kubectl","delete", "deployments/client"])
     return 1, consensus_time, total_iteration, diameter
+
 
     # ################Job/Task Distribute#################
     # print("---Start Job Assigning---")
@@ -252,75 +253,84 @@ def start_server(num_clients, server_node, max_iter=1000, workload_min=100,workl
     #       file.write(filedata)
     #     subprocess.check_output(["kubectl","apply", "-f", filename])
 
-
-if __name__ == "__main__":
-    #---------- Record Consensus Status ----------
-    random.seed(1234)
-    # seeds = random.sample(range(1, 100), 10)
-    seeds = [57, 15, 1, 12, 75, 5, 86, 89, 11, 13]
-    # seeds = [15]
-    nodes = [20,30,40,50,60,70,80,90,100]
-    # nodes = [50,60,70]
+def node_init():
     #---------- Start Server Node ----------
     HOSTNAME = urllib.request.urlopen(URL_REQUEST).read().decode('utf8')
     server_node = MyOwnPeer2PeerNode(HOSTNAME, DEFAULT_PORT, HOSTNAME)
     server_node.start()
-    # TODO: check if sleep is necessary here
     time.sleep(10)
-    #---------- Start Running Trials ----------
+    return server_node, HOSTNAME
+
+def create_clients(num_clients):
+    print("Number of clients: ", num_clients)
+    # Create and run client deployment files
+    tmplstr = "client-deployment-"+str(num_clients)
+    with open('../deployments/client/client-deployment.yaml', 'r') as file :
+        client_tmpl = file.read()
+    filedata = client_tmpl.replace('$NUM_NODES',str(num_clients))
+    filename = "../deployments/client/"+tmplstr+".yaml"
+    with open(filename, 'w') as file:
+        file.write(filedata)
+    subprocess.check_output(["kubectl","apply", "-f", filename])
+
+def log(server_node, num_clients, i, consensus_time, iteration, diameter):
+    content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
+    print("Results: ",content)
+
+    myfile = open('../log.txt', 'a')
+    myfile.write(content)
+    
+    # Number of client logs received
+    while len(server_node.msg_ex_net_out_list) < 10:
+        # print(len(server_node.msg_ex_net_out_list))
+        # print(server_node.msg_ex_net_out_list)
+        # print("Wait for all clients sending back results..")
+        time.sleep(5)
+    myfile.write(json.dumps(server_node.local_comp_time_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_xy_time_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_z_time_list)+ '\n')
+    myfile.write(json.dumps(server_node.local_comp_cpu_list)+ '\n')
+    myfile.write(json.dumps(server_node.local_comp_mem_list)+ '\n')
+    myfile.write(json.dumps(server_node.local_comp_disk_list)+ '\n')
+    myfile.write(json.dumps(server_node.local_comp_net_in_list)+ '\n')
+    myfile.write(json.dumps(server_node.local_comp_net_out_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_cpu_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_mem_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_disk_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_net_in_list)+ '\n')
+    myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
+    myfile.close()
+
+def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
     for num_clients in nodes:
-        print("Number of clients: ", num_clients)
-        # Create and run client deployment files
-        tmplstr = "client-deployment-"+str(num_clients)
-        with open('../deployments/client/client-deployment.yaml', 'r') as file :
-            client_tmpl = file.read()
-        filedata = client_tmpl.replace('$NUM_NODES',str(num_clients))
-        filename = "../deployments/client/"+tmplstr+".yaml"
-        with open(filename, 'w') as file:
-            file.write(filedata)
-        subprocess.check_output(["kubectl","apply", "-f", filename])
+        create_clients(num_clients)
         # Trials
-        for i in range(len(seeds)):
-            random.seed(seeds[i])
-            np.random.seed(seeds[i])
+        for i in range(trials):
             print("Iteration: ", i)
-            flag, consensus_time, iteration, diameter = start_server(num_clients,server_node)
+            flag, consensus_time, iteration, diameter = start_server(num_clients,server_node,HOSTNAME)
             if flag == 1:
-                content = str(num_clients) +  " " + str(i) + " " + str(consensus_time) + " " + str(iteration) + " " + str(diameter) + "\n"
-                print("Results: ",content)
-
-                myfile = open('../log.txt', 'a')
-                myfile.write(content)
-                
-                # Number of client logs received
-                while len(server_node.msg_ex_net_out_list) < 10:
-                    # print(len(server_node.msg_ex_net_out_list))
-                    # print(server_node.msg_ex_net_out_list)
-                    # print("Wait for all clients sending back results..")
-                    time.sleep(5)
-                
-                myfile.write(json.dumps(server_node.local_comp_time_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_xy_time_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_z_time_list)+ '\n')
-                myfile.write(json.dumps(server_node.local_comp_cpu_list)+ '\n')
-                myfile.write(json.dumps(server_node.local_comp_mem_list)+ '\n')
-                myfile.write(json.dumps(server_node.local_comp_disk_list)+ '\n')
-                myfile.write(json.dumps(server_node.local_comp_net_in_list)+ '\n')
-                myfile.write(json.dumps(server_node.local_comp_net_out_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_cpu_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_mem_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_disk_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_net_in_list)+ '\n')
-                myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
-
-                
-
-                myfile.close()
+                log(server_node, num_clients, i, consensus_time, iteration, diameter)
             print("Server Finish logging")
             while server_node.client_reset_num < num_clients:
                 time.sleep(2)
             print("[Server] all client reset")
+            if job_scheduling == True:
+                print("[Server] preparing to do job scheduling")
             server_node.reset()
-            # TODO: check if sleep is necessary here
+
+
+if __name__ == "__main__":
+    server_node, HOSTNAME = node_init()
+    #---------- Record Consensus Status ----------
+    random.seed(1234)
+    trials = 10
+    nodes = [20,30,40,50,60,70,80,90,100]
+    job_scheduling = True
+    
+    #---------- Start Running Trials ----------
+    run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling)
+        
+
+
             
     
