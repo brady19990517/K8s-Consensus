@@ -343,7 +343,8 @@ def log(server_node, num_clients, i, consensus_time, iteration, diameter):
     myfile.write(content)
     
     # Number of client logs received
-    while len(server_node.msg_ex_net_out_list) < 10:
+    NUMBER_OF_LOGS = 9
+    while len(server_node.msg_ex_net_out_list) < NUMBER_OF_LOGS:
         # print(len(server_node.msg_ex_net_out_list))
         # print(server_node.msg_ex_net_out_list)
         # print("Wait for all clients sending back results..")
