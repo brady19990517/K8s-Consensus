@@ -18,6 +18,7 @@ import copy
 from ortools.linear_solver import pywraplp
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+import re
 
 from MyOwnPeer2PeerNode import MyOwnPeer2PeerNode
 
@@ -26,7 +27,7 @@ URL_REQUEST = 'https://v4.ident.me'
 DEFAULT_PORT = 10001
 
 
-def start_server(num_clients, server_node, HOSTNAME, max_iter=1000, workload_min=100,workload_max=1000,epsilon=1e-5,use_variable_capacities = 0):
+def start_server(num_clients, server_node, HOSTNAME, job_scheduling=False,max_iter=1000, workload_min=100,workload_max=1000,epsilon=1e-5,use_variable_capacities = 0):
     #---------- Establishing Connections ----------
     # Waiting for connection from client
     while len(server_node.client_hostname_list) < num_clients:
@@ -48,13 +49,16 @@ def start_server(num_clients, server_node, HOSTNAME, max_iter=1000, workload_min
     # print("x_0:", np.transpose(x_0)[0])
     # Generate Capacity
     y_0=None
-    if use_variable_capacities == 0:
-        y_0 = np.ones((num_clients, 1))*1000
+    if job_scheduling == True:
+        pass
     else:
-        #Half of the nodes have the capacity of 3 and half have 5
-        y1 = 3 * np.ones((math.ceil(num_clients / 2), 1))
-        y2 = 5 * np.ones((math.floor(num_clients / 2), 1))
-        y_0 = np.concatenate((y1,y2)) 
+        if use_variable_capacities == 0:
+            y_0 = np.ones((num_clients, 1))*1000
+        else:
+            #Half of the nodes have the capacity of 3 and half have 5
+            y1 = 3 * np.ones((math.ceil(num_clients / 2), 1))
+            y2 = 5 * np.ones((math.floor(num_clients / 2), 1))
+            y_0 = np.concatenate((y1,y2)) 
     # print("y_0:", np.transpose(y_0)[0])
     # Generate max and min   
     M = x_0.max()
@@ -76,9 +80,15 @@ def start_server(num_clients, server_node, HOSTNAME, max_iter=1000, workload_min
     for i in range(num_clients):
         workload[server_node.client_hostname_list[i]] = x_0[i][0]
     # Create Capacity Message
-    capacity = {}
-    for i in range(num_clients):
-        capacity[server_node.client_hostname_list[i]] = y_0[i][0]
+    capacity = None
+    if job_scheduling:
+        capacity = get_capacity()
+        print(capacity)
+        
+    else:
+        capacity = {}
+        for i in range(num_clients):
+            capacity[server_node.client_hostname_list[i]] = y_0[i][0]
     # collect message
     msg={}
     msg["server_addr"] = HOSTNAME[:12]
@@ -125,10 +135,9 @@ def start_server(num_clients, server_node, HOSTNAME, max_iter=1000, workload_min
             break
 
     consensus_time = time.time() - server_node.start_consensus_time
-    total_iteration = cur_iter-1
     print("[Consensus] Consensus takes %s seconds" % (consensus_time))
-    print("[Consensus] Ending at iteration: ", total_iteration)
-    print("[Consensus] All ratio ended at: ", json.dumps(server_node.z_storage[cur_iter-1]))
+    print("[Consensus] Ending at iteration: ", cur_iter)
+    print("[Consensus] All ratio ended at: ", json.dumps(server_node.z_storage[cur_iter]))
     print("[Consensus] End Consensus")
     # Close client node
     server_node.send_to_nodes(str({"stop":0}))
@@ -136,122 +145,167 @@ def start_server(num_clients, server_node, HOSTNAME, max_iter=1000, workload_min
     time.sleep(5)
     # server_node.stop()
     # is_complete = subprocess.check_output(["kubectl","delete", "deployments/client"])
-    return 1, consensus_time, total_iteration, diameter
+    return 1, consensus_time, cur_iter, diameter, x_0, capacity
 
+def get_capacity():
+    lines = subprocess.check_output(["kubectl","describe","nodes"]).decode("utf-8").split('\n')
+    name_index = []
+    cpu_index = []
+    total_cpu_index = []
+    for i,l in enumerate(lines):
+        if 'Name:' in l and 'caelum-' in l:
+            name_index.append(i)
+        if 'Allocatable' in l:
+            total_cpu_index.append(i+1)
+        if 'Allocated resources' in l:
+            cpu_index.append(i+4)
+    # Get node total capacity and current capacity to obtain remain capcity
+    result = {}
+    for i,idx in enumerate(cpu_index):
+        name_arr = lines[name_index[i]].split()
+        total_cpu_arr = lines[total_cpu_index[i]].split()
+        cpu_arr = lines[idx].split()
+        name = name_arr[1]
+        total_cap = int(total_cpu_arr[1])*1000
+        cap = cpu_arr[1]
+        if 'm' in cap:
+            cap = int(cap[:-1])
+        else:
+            cap = int(cap)*1000
+        result[name] = total_cap - cap
+    # Match each scheduler to a node
+    lines = subprocess.check_output(["kubectl","get","pod","-o=custom-columns=NODE:.spec.nodeName,IP:.status.podIP"]).decode("utf-8").split('\n')
+    node_ip_dict = {}
+    for i,l in enumerate(lines):
+        if i==0 or len(l)==0:
+            continue
+        arr = lines[i].split()
+        print(arr)
+        node_ip_dict[arr[0]] = arr[1]
+    print(node_ip_dict)
+    new_result = {}
+    for key, value in result.items():
+        if key == 'caelum-102':
+            continue
+        new_result[node_ip_dict[key]] = value
+    return new_result
+        
+        
 
-    # ################Job/Task Distribute#################
-    # print("---Start Job Assigning---")
-    # start_job_assign = time.time()
-    # data = {}
-    # data['weights'] = np.transpose(x_0).tolist()[0]
-    # data['values'] = [1]*len(data['weights'])
+# def job_scheduling():
+#     ################Job/Task Distribute#################
+#     print("---Start Job Assigning---")
+#     start_job_assign = time.time()
+#     data = {}
+#     data['weights'] = np.transpose(x_0).tolist()[0]
+#     data['values'] = [1]*len(data['weights'])
 
-    # assert len(data['weights']) == len(data['values'])
-    # data['num_items'] = len(data['weights'])
-    # data['all_items'] = range(data['num_items'])
+#     assert len(data['weights']) == len(data['values'])
+#     data['num_items'] = len(data['weights'])
+#     data['all_items'] = range(data['num_items'])
 
     
-    # data['bin_capacities'] = [capacity[host]*server_node.z_storage[cur_iter-1][host] for host in server_node.client_hostname_list]
+#     data['bin_capacities'] = [capacity[host]*server_node.z_storage[cur_iter-1][host] for host in server_node.client_hostname_list]
     
-    # data['num_bins'] = len(data['bin_capacities'])
-    # data['all_bins'] = range(data['num_bins'])
+#     data['num_bins'] = len(data['bin_capacities'])
+#     data['all_bins'] = range(data['num_bins'])
 
-    # print("Job weights: ", data['weights'])
-    # print("Node capacity: ", data['bin_capacities'])
+#     print("Job weights: ", data['weights'])
+#     print("Node capacity: ", data['bin_capacities'])
 
-    # # Create the mip solver with the SCIP backend.
-    # solver = pywraplp.Solver.CreateSolver('SCIP')
-    # if solver is None:
-    #     print('SCIP solver unavailable.')
-    #     return
+#     # Create the mip solver with the SCIP backend.
+#     solver = pywraplp.Solver.CreateSolver('SCIP')
+#     if solver is None:
+#         print('SCIP solver unavailable.')
+#         return
 
-    # # Variables.
-    # # x[i, b] = 1 if item i is packed in bin b.
-    # x = {}
-    # for i in data['all_items']:
-    #     for b in data['all_bins']:
-    #         x[i, b] = solver.BoolVar(f'x_{i}_{b}')
+#     # Variables.
+#     # x[i, b] = 1 if item i is packed in bin b.
+#     x = {}
+#     for i in data['all_items']:
+#         for b in data['all_bins']:
+#             x[i, b] = solver.BoolVar(f'x_{i}_{b}')
 
-    # # Constraints.
-    # # Each item is assigned to at most one bin.
-    # for i in data['all_items']:
-    #     solver.Add(sum(x[i, b] for b in data['all_bins']) <= 1)
+#     # Constraints.
+#     # Each item is assigned to at most one bin.
+#     for i in data['all_items']:
+#         solver.Add(sum(x[i, b] for b in data['all_bins']) <= 1)
 
-    # # The amount packed in each bin cannot exceed its capacity.
-    # for b in data['all_bins']:
-    #     solver.Add(
-    #         sum(x[i, b] * data['weights'][i]
-    #             for i in data['all_items']) <= data['bin_capacities'][b])
+#     # The amount packed in each bin cannot exceed its capacity.
+#     for b in data['all_bins']:
+#         solver.Add(
+#             sum(x[i, b] * data['weights'][i]
+#                 for i in data['all_items']) <= data['bin_capacities'][b])
 
-    # # Objective.
-    # # Maximize total value of packed items.
-    # objective = solver.Objective()
-    # for i in data['all_items']:
-    #     for b in data['all_bins']:
-    #         objective.SetCoefficient(x[i, b], data['values'][i])
-    # objective.SetMaximization()
+#     # Objective.
+#     # Maximize total value of packed items.
+#     objective = solver.Objective()
+#     for i in data['all_items']:
+#         for b in data['all_bins']:
+#             objective.SetCoefficient(x[i, b], data['values'][i])
+#     objective.SetMaximization()
 
-    # status = solver.Solve()
+#     status = solver.Solve()
 
-    # assignment = {}
-    # if status == pywraplp.Solver.OPTIMAL:
-    #     print(f'Total job assigned: {objective.Value()}')
-    #     total_weight = 0
-    #     for b in data['all_bins']:
-    #         print('Node: ',server_node.client_hostname_list[b])
-    #         bin_weight = 0
-    #         bin_value = 0
-    #         for i in data['all_items']:
-    #             if x[i, b].solution_value() > 0:
-    #                 print(
-    #                     f"Assigned Job {i} weight: {data['weights'][i]}"
-    #                 )
-    #                 bin_weight += data['weights'][i]
-    #                 bin_value += data['values'][i]
-    #                 assignment[i] = server_node.client_hostname_list[b]
-    #         # print(f'Packed Job CPU cycles: {bin_weight}')
-    #         # print(f'Packed number of Jobs: {bin_value}\n')
-    #         total_weight += bin_weight
+#     assignment = {}
+#     if status == pywraplp.Solver.OPTIMAL:
+#         print(f'Total job assigned: {objective.Value()}')
+#         total_weight = 0
+#         for b in data['all_bins']:
+#             print('Node: ',server_node.client_hostname_list[b])
+#             bin_weight = 0
+#             bin_value = 0
+#             for i in data['all_items']:
+#                 if x[i, b].solution_value() > 0:
+#                     print(
+#                         f"Assigned Job {i} weight: {data['weights'][i]}"
+#                     )
+#                     bin_weight += data['weights'][i]
+#                     bin_value += data['values'][i]
+#                     assignment[i] = server_node.client_hostname_list[b]
+#             # print(f'Packed Job CPU cycles: {bin_weight}')
+#             # print(f'Packed number of Jobs: {bin_value}\n')
+#             total_weight += bin_weight
             
-    #     print(f'Total packed CPU cycles: {total_weight}')
-    # else:
-    #     print('The problem does not have an optimal solution.')
+#         print(f'Total packed CPU cycles: {total_weight}')
+#     else:
+#         print('The problem does not have an optimal solution.')
 
-    # print("---End Job Assigning---")
-    # print("Job Scheduling takes %s seconds" % (time.time() - start_job_assign))
-    # ###############################################
+#     print("---End Job Assigning---")
+#     print("Job Scheduling takes %s seconds" % (time.time() - start_job_assign))
+#     ###############################################
     
     
     
-    # print(is_complete)
+#     print(is_complete)
 
-    # cpu_to_machine = {}
-    # for i,n in enumerate(server_node.client_hostname_list):
-    #     if i < 12:
-    #         cpu_to_machine[n] = 'caelum-201'
-    #     elif i < 18:
-    #         cpu_to_machine[n] = 'caelum-601'
-    #     elif i < 24:
-    #         cpu_to_machine[n] = 'caelum-602'
-    #     elif i < 30:
-    #         cpu_to_machine[n] = 'caelum-603'
-    # ###############################################
-    # #Start Job assinging
-    # print("Scheduled Jobs: ", list(assignment.keys()))
-    # for id in list(assignment.keys()):
-    #     print(id)
-    #     # subprocess.check_output(['export','JOBID=','job'+str(id)],shell=True)
-    #     # subprocess.check_output(["export","NUMCPU=","1"],shell=True)
-    #     # subprocess.check_output(["export","NODE=",cpu_to_machine[id]],shell=True)
-    #     # subprocess.check_output(["envsubst","<","../job-pod.yaml","|","kubectl","apply", "-f","-"],shell=True)
-    #     jobstr = "job"+str(id)
-    #     with open('../jobs/job-pod.yaml', 'r') as file :
-    #         job_tmpl = file.read()
-    #     filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU","1").replace("$NODE",cpu_to_machine[assignment[id]])
-        # filename = "../jobs/"+jobstr+".yaml"
-    #     with open(filename, 'w') as file:
-    #       file.write(filedata)
-    #     subprocess.check_output(["kubectl","apply", "-f", filename])
+#     cpu_to_machine = {}
+#     for i,n in enumerate(server_node.client_hostname_list):
+#         if i < 12:
+#             cpu_to_machine[n] = 'caelum-201'
+#         elif i < 18:
+#             cpu_to_machine[n] = 'caelum-601'
+#         elif i < 24:
+#             cpu_to_machine[n] = 'caelum-602'
+#         elif i < 30:
+#             cpu_to_machine[n] = 'caelum-603'
+#     ###############################################
+#     #Start Job assinging
+#     print("Scheduled Jobs: ", list(assignment.keys()))
+#     for id in list(assignment.keys()):
+#         print(id)
+#         # subprocess.check_output(['export','JOBID=','job'+str(id)],shell=True)
+#         # subprocess.check_output(["export","NUMCPU=","1"],shell=True)
+#         # subprocess.check_output(["export","NODE=",cpu_to_machine[id]],shell=True)
+#         # subprocess.check_output(["envsubst","<","../job-pod.yaml","|","kubectl","apply", "-f","-"],shell=True)
+#         jobstr = "job"+str(id)
+#         with open('../jobs/job-pod.yaml', 'r') as file :
+#             job_tmpl = file.read()
+#         filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU","1").replace("$NODE",cpu_to_machine[assignment[id]])
+#         filename = "../jobs/"+jobstr+".yaml"
+#         with open(filename, 'w') as file:
+#           file.write(filedata)
+#         subprocess.check_output(["kubectl","apply", "-f", filename])
 
 def node_init():
     #---------- Start Server Node ----------
@@ -307,7 +361,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
         # Trials
         for i in range(trials):
             print("Iteration: ", i)
-            flag, consensus_time, iteration, diameter = start_server(num_clients,server_node,HOSTNAME)
+            flag, consensus_time, iteration, diameter = start_server(num_clients,server_node,HOSTNAME,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
             print("Server Finish logging")
@@ -316,6 +370,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
             print("[Server] all client reset")
             if job_scheduling == True:
                 print("[Server] preparing to do job scheduling")
+                
             server_node.reset()
 
 
@@ -323,11 +378,16 @@ if __name__ == "__main__":
     server_node, HOSTNAME = node_init()
     #---------- Record Consensus Status ----------
     random.seed(1234)
-    trials = 10
-    nodes = [20,30,40,50,60,70,80,90,100]
+    # trials = 10
+    trials = 1
+    # nodes = [20,30,40,50,60,70,80,90,100]
+    nodes = [9]
     job_scheduling = True
     
     #---------- Start Running Trials ----------
+    if job_scheduling:
+        assert(len(nodes)==1 and nodes[0]==9)
+        assert(trials == 1)
     run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling)
         
 
