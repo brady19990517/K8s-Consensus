@@ -27,7 +27,7 @@ URL_REQUEST = 'https://v4.ident.me'
 DEFAULT_PORT = 10001
 
 
-def start_server(num_clients, server_node, HOSTNAME, job_scheduling=False,max_iter=1000, workload_min=100,workload_max=1000,epsilon=1e-5,use_variable_capacities = 0):
+def start_server(num_clients, server_node, HOSTNAME, x_0,job_scheduling=False,max_iter=1000,epsilon=1e-5,use_variable_capacities = 0):
     #---------- Establishing Connections ----------
     # Waiting for connection from client
     while len(server_node.client_hostname_list) < num_clients:
@@ -44,8 +44,8 @@ def start_server(num_clients, server_node, HOSTNAME, job_scheduling=False,max_it
     # Generate Graph
     print("Server Generating Graph....")
     AdjMatrix, diameter = gen_graph(num_clients,False)
-    # Generate Workload
-    x_0 = gen_workload(workload_min, workload_max, num_clients)
+    # # Generate Workload
+    # x_0 = gen_workload(workload_min, workload_max, num_clients)
     # print("x_0:", np.transpose(x_0)[0])
     # Generate Capacity
     y_0=None
@@ -192,88 +192,90 @@ def get_capacity():
         
         
 
-# def job_scheduling():
-#     ################Job/Task Distribute#################
-#     print("---Start Job Assigning---")
-#     start_job_assign = time.time()
-#     data = {}
-#     data['weights'] = np.transpose(x_0).tolist()[0]
-#     data['values'] = [1]*len(data['weights'])
+def job_scheduling(x_0, capacity):
+    ################Job/Task Distribute#################
+    print('workload: ',x_0)
+    print('capacity: ',capacity)
+    # print("---Start Job Assigning---")
+    # start_job_assign = time.time()
+    # data = {}
+    # data['weights'] = np.transpose(x_0).tolist()[0]
+    # data['values'] = [1]*len(data['weights'])
 
-#     assert len(data['weights']) == len(data['values'])
-#     data['num_items'] = len(data['weights'])
-#     data['all_items'] = range(data['num_items'])
+    # assert len(data['weights']) == len(data['values'])
+    # data['num_items'] = len(data['weights'])
+    # data['all_items'] = range(data['num_items'])
 
     
-#     data['bin_capacities'] = [capacity[host]*server_node.z_storage[cur_iter-1][host] for host in server_node.client_hostname_list]
+    # data['bin_capacities'] = [capacity[host]*server_node.z_storage[cur_iter-1][host] for host in server_node.client_hostname_list]
     
-#     data['num_bins'] = len(data['bin_capacities'])
-#     data['all_bins'] = range(data['num_bins'])
+    # data['num_bins'] = len(data['bin_capacities'])
+    # data['all_bins'] = range(data['num_bins'])
 
-#     print("Job weights: ", data['weights'])
-#     print("Node capacity: ", data['bin_capacities'])
+    # print("Job weights: ", data['weights'])
+    # print("Node capacity: ", data['bin_capacities'])
 
-#     # Create the mip solver with the SCIP backend.
-#     solver = pywraplp.Solver.CreateSolver('SCIP')
-#     if solver is None:
-#         print('SCIP solver unavailable.')
-#         return
+    # # Create the mip solver with the SCIP backend.
+    # solver = pywraplp.Solver.CreateSolver('SCIP')
+    # if solver is None:
+    #     print('SCIP solver unavailable.')
+    #     return
 
-#     # Variables.
-#     # x[i, b] = 1 if item i is packed in bin b.
-#     x = {}
-#     for i in data['all_items']:
-#         for b in data['all_bins']:
-#             x[i, b] = solver.BoolVar(f'x_{i}_{b}')
+    # # Variables.
+    # # x[i, b] = 1 if item i is packed in bin b.
+    # x = {}
+    # for i in data['all_items']:
+    #     for b in data['all_bins']:
+    #         x[i, b] = solver.BoolVar(f'x_{i}_{b}')
 
-#     # Constraints.
-#     # Each item is assigned to at most one bin.
-#     for i in data['all_items']:
-#         solver.Add(sum(x[i, b] for b in data['all_bins']) <= 1)
+    # # Constraints.
+    # # Each item is assigned to at most one bin.
+    # for i in data['all_items']:
+    #     solver.Add(sum(x[i, b] for b in data['all_bins']) <= 1)
 
-#     # The amount packed in each bin cannot exceed its capacity.
-#     for b in data['all_bins']:
-#         solver.Add(
-#             sum(x[i, b] * data['weights'][i]
-#                 for i in data['all_items']) <= data['bin_capacities'][b])
+    # # The amount packed in each bin cannot exceed its capacity.
+    # for b in data['all_bins']:
+    #     solver.Add(
+    #         sum(x[i, b] * data['weights'][i]
+    #             for i in data['all_items']) <= data['bin_capacities'][b])
 
-#     # Objective.
-#     # Maximize total value of packed items.
-#     objective = solver.Objective()
-#     for i in data['all_items']:
-#         for b in data['all_bins']:
-#             objective.SetCoefficient(x[i, b], data['values'][i])
-#     objective.SetMaximization()
+    # # Objective.
+    # # Maximize total value of packed items.
+    # objective = solver.Objective()
+    # for i in data['all_items']:
+    #     for b in data['all_bins']:
+    #         objective.SetCoefficient(x[i, b], data['values'][i])
+    # objective.SetMaximization()
 
-#     status = solver.Solve()
+    # status = solver.Solve()
 
-#     assignment = {}
-#     if status == pywraplp.Solver.OPTIMAL:
-#         print(f'Total job assigned: {objective.Value()}')
-#         total_weight = 0
-#         for b in data['all_bins']:
-#             print('Node: ',server_node.client_hostname_list[b])
-#             bin_weight = 0
-#             bin_value = 0
-#             for i in data['all_items']:
-#                 if x[i, b].solution_value() > 0:
-#                     print(
-#                         f"Assigned Job {i} weight: {data['weights'][i]}"
-#                     )
-#                     bin_weight += data['weights'][i]
-#                     bin_value += data['values'][i]
-#                     assignment[i] = server_node.client_hostname_list[b]
-#             # print(f'Packed Job CPU cycles: {bin_weight}')
-#             # print(f'Packed number of Jobs: {bin_value}\n')
-#             total_weight += bin_weight
+    # assignment = {}
+    # if status == pywraplp.Solver.OPTIMAL:
+    #     print(f'Total job assigned: {objective.Value()}')
+    #     total_weight = 0
+    #     for b in data['all_bins']:
+    #         print('Node: ',server_node.client_hostname_list[b])
+    #         bin_weight = 0
+    #         bin_value = 0
+    #         for i in data['all_items']:
+    #             if x[i, b].solution_value() > 0:
+    #                 print(
+    #                     f"Assigned Job {i} weight: {data['weights'][i]}"
+    #                 )
+    #                 bin_weight += data['weights'][i]
+    #                 bin_value += data['values'][i]
+    #                 assignment[i] = server_node.client_hostname_list[b]
+    #         # print(f'Packed Job CPU cycles: {bin_weight}')
+    #         # print(f'Packed number of Jobs: {bin_value}\n')
+    #         total_weight += bin_weight
             
-#         print(f'Total packed CPU cycles: {total_weight}')
-#     else:
-#         print('The problem does not have an optimal solution.')
+    #     print(f'Total packed CPU cycles: {total_weight}')
+    # else:
+    #     print('The problem does not have an optimal solution.')
 
-#     print("---End Job Assigning---")
-#     print("Job Scheduling takes %s seconds" % (time.time() - start_job_assign))
-#     ###############################################
+    # print("---End Job Assigning---")
+    # print("Job Scheduling takes %s seconds" % (time.time() - start_job_assign))
+    ###############################################
     
     
     
@@ -361,7 +363,9 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
         # Trials
         for i in range(trials):
             print("Iteration: ", i)
-            flag, consensus_time, iteration, diameter = start_server(num_clients,server_node,HOSTNAME,job_scheduling)
+            # Generate Workload
+            x_0 = gen_workload(100, 1000, num_clients)
+            flag, consensus_time, iteration, diameter, capacity = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
             print("Server Finish logging")
@@ -370,13 +374,12 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
             print("[Server] all client reset")
             if job_scheduling == True:
                 print("[Server] preparing to do job scheduling")
-                
-            server_node.reset()
 
+            server_node.reset()
 
 if __name__ == "__main__":
     server_node, HOSTNAME = node_init()
-    #---------- Record Consensus Status ----------
+    #---------- Setting Parameters ----------
     random.seed(1234)
     # trials = 10
     trials = 1
