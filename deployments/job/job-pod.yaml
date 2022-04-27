@@ -1,18 +1,21 @@
-apiVersion: v1
-kind: Pod
+apiVersion: batch/v1
+kind: Job
 metadata:
   name: $JOBID
-  namespace: default
 spec:
-  containers:
-  - image: busybox
-    command:
-      - sleep
-      - "15"
-    imagePullPolicy: IfNotPresent
-    resources:
-      requests:
-        cpu: $NUM_CPU
-    name: busybox
-  nodeSelector:
-    name: $NODE
+  template:
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command:
+        - sleep
+        - "15"
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: $NUM_CPU
+      restartPolicy: Never
+      nodeSelector:
+        name: $NODE
+  backoffLimit: 4
