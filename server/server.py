@@ -303,7 +303,7 @@ def run_jobs(assignment,x_0,ip_node_dict):
         created_jobs.append(jobstr)
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",str(random.randint(15, 120)))
+        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",""" + str(random.randint(15, 180)) + """)
         filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
