@@ -293,10 +293,14 @@ def run_jobs(assignment,x_0,ip_node_dict):
     #Start Job assinging
     workload = np.transpose(x_0).tolist()[0]
     print("Start running jobs: ", list(assignment.keys()))
+    created_jobs = []
     for id in list(assignment.keys()):
+        if assignment[id] is None:
+            continue
         print(id)
         req_cpu = str(workload[id]) + 'm'
-        jobstr = "job-pod"+str(id)
+        jobstr = "job-pod-"+str(id)
+        created_jobs.append(jobstr)
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
         filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]])
@@ -304,7 +308,16 @@ def run_jobs(assignment,x_0,ip_node_dict):
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
-    
+
+    # Rerun consensus algorithm if two jobs completed
+    while complete_jobs < 2:
+        out = subprocess.check_output(["kubectl","get", "jobs", "--field-selector", "status.successful=1"])
+        print(out)
+        complete_jobs = out.count('\n')-1
+        time.sleep(3)
+        
+    print("At least two jobs completed")
+
         # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
     
@@ -382,6 +395,14 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 assignment = job_scheduler(x_0,capacity,type='mk')
                 run_jobs(assignment,x_0,ip_node_dict)
                 print(assignment)
+
+                for job_id in assignment.keys():
+                    if assignment[job_id] != None:
+                        x_0[job_id] = 0
+                
+                print('Schedule unscheduled jobs: ', x_0)
+                flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+
                 
             server_node.reset()
 
