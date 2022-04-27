@@ -83,7 +83,7 @@ def start_server(num_clients, server_node, HOSTNAME, x_0,job_scheduling=False,ma
     # Create Capacity Message
     capacity = None
     if job_scheduling:
-        capacity = get_capacity()
+        capacity, ip_node_dict = get_capacity()
         print(capacity)
         
     else:
@@ -151,7 +151,7 @@ def start_server(num_clients, server_node, HOSTNAME, x_0,job_scheduling=False,ma
         optimal_cap[host] = capacity[host]*server_node.z_storage[cur_iter][host]
 
 
-    return 1, consensus_time, cur_iter, diameter, optimal_cap
+    return 1, consensus_time, cur_iter, diameter, optimal_cap, ip_node_dict
 
 def get_capacity():
     lines = subprocess.check_output(["kubectl","describe","nodes"]).decode("utf-8").split('\n')
@@ -188,13 +188,14 @@ def get_capacity():
         arr = lines[i].split()
         print(arr)
         node_ip_dict[arr[0]] = arr[1]
+    ip_node_dict = {v: k for k, v in node_ip_dict.items()}
     print(node_ip_dict)
     new_result = {}
     for key, value in result.items():
         if key == 'caelum-102':
             continue
         new_result[node_ip_dict[key]] = value
-    return new_result
+    return new_result, ip_node_dict
         
         
 
@@ -288,16 +289,17 @@ def job_scheduler(workload, capacity, type='mk'):
     ###############################################
     
     
-def run_jobs(assignment,x_0):
+def run_jobs(assignment,x_0,ip_node_dict):
     #Start Job assinging
+    workload = np.transpose(x_0).tolist()[0]
     print("Start running jobs: ", list(assignment.keys()))
     for id in list(assignment.keys()):
         print(id)
-        req_cpu = str(x_0[id]) + 'm'
-        jobstr = "job"+str(id)
+        req_cpu = str(workload[id]) + 'm'
+        jobstr = "job-pod"+str(id)
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",assignment[id])
+        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]])
         filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
@@ -364,7 +366,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
             print("Iteration: ", i)
             # Generate Workload
             x_0 = gen_workload(100, 1000, num_clients, job_scheduling=False)
-            flag, consensus_time, iteration, diameter, capacity = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+            flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
             print("Server Finish logging")
@@ -378,7 +380,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment = job_scheduler(x_0,capacity,type='mk')
-                run_jobs(assignment,x_0)
+                run_jobs(assignment,x_0,ip_node_dict)
                 print(assignment)
                 
             server_node.reset()
