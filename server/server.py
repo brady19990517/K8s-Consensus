@@ -289,7 +289,7 @@ def job_scheduler(workload, capacity, type='mk'):
     ###############################################
     
     
-def run_jobs(assignment,x_0,ip_node_dict):
+def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
     #Start Job assinging
     workload = np.transpose(x_0).tolist()[0]
     print("Start running jobs: ", list(assignment.keys()))
@@ -303,21 +303,25 @@ def run_jobs(assignment,x_0,ip_node_dict):
         created_jobs.append(jobstr)
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",""" + str(random.randint(15, 180)) + """)
+        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",str(random.randint(15, 180)))
         filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
 
     # Rerun consensus algorithm if two jobs completed
-    complete_jobs = 0
-    while complete_jobs < 2:
+    prev_completed_jobs = completed_jobs
+    completed_jobs = 0
+    # Stop looping when at least one job complete
+    while prev_completed_jobs >= completed_jobs:
         out = subprocess.check_output(["kubectl","get", "jobs", "--field-selector", "status.successful=1"])
         print(out)
-        complete_jobs = out.count('\n')-1
+        complete_jobs = out.count(b'\n')-1
         time.sleep(3)
         
-    print("At least two jobs completed")
+    print("At least one job completed")
+
+    return completed_jobs
 
         # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
@@ -394,7 +398,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment = job_scheduler(x_0,capacity,type='mk')
-                run_jobs(assignment,x_0,ip_node_dict)
+                completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
                 print(assignment)
 
                 for job_id in assignment.keys():
