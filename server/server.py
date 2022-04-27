@@ -7,6 +7,7 @@ from docker import Client
 import os
 import numpy as np
 import random
+import copy
 import urllib
 import socket
 import math
@@ -197,14 +198,17 @@ def get_capacity():
         
         
 
-def job_scheduler(workload, capacity):
+def job_scheduler(workload, capacity, type='mk'):
     ################Job/Task Distribute#################
     print("---Start Job Assigning---")
     start_job_assign_time = time.time()
     data = {}
     node_list = list(capacity.keys())
     data['workload'] = np.transpose(workload).tolist()[0]
-    data['task_per_job'] = [1]*len(data['workload'])
+    #Assume each task need 0.001 cpu
+    data['task_per_job'] = copy.deepcopy(data['workload'])
+    #Assume each job has only 1 task
+    # data['task_per_job'] = [1]*len(data['workload'])
     assert len(data['workload']) == len(data['task_per_job'])
     data['num_jobs'] = len(data['workload'])
     data['all_jobs'] = range(data['num_jobs'])
@@ -284,36 +288,24 @@ def job_scheduler(workload, capacity):
     ###############################################
     
     
+def run_jobs(assignment,x_0):
+    #Start Job assinging
+    print("Start running jobs: ", list(assignment.keys()))
+    for id in list(assignment.keys()):
+        print(id)
+        req_cpu = str(x_0[id]) + 'm'
+        jobstr = "job"+str(id)
+        with open('../deployments/job/job-pod.yaml', 'r') as file:
+            job_tmpl = file.read()
+        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",assignment[id])
+        filename = "../deployments/jobs/"+jobstr+".yaml"
+        with open(filename, 'w') as file:
+            file.write(filedata)
+        subprocess.check_output(["kubectl","apply", "-f", filename])
     
-#     print(is_complete)
+        # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
-#     cpu_to_machine = {}
-#     for i,n in enumerate(server_node.client_hostname_list):
-#         if i < 12:
-#             cpu_to_machine[n] = 'caelum-201'
-#         elif i < 18:
-#             cpu_to_machine[n] = 'caelum-601'
-#         elif i < 24:
-#             cpu_to_machine[n] = 'caelum-602'
-#         elif i < 30:
-#             cpu_to_machine[n] = 'caelum-603'
-#     ###############################################
-#     #Start Job assinging
-#     print("Scheduled Jobs: ", list(assignment.keys()))
-#     for id in list(assignment.keys()):
-#         print(id)
-#         # subprocess.check_output(['export','JOBID=','job'+str(id)],shell=True)
-#         # subprocess.check_output(["export","NUMCPU=","1"],shell=True)
-#         # subprocess.check_output(["export","NODE=",cpu_to_machine[id]],shell=True)
-#         # subprocess.check_output(["envsubst","<","../job-pod.yaml","|","kubectl","apply", "-f","-"],shell=True)
-#         jobstr = "job"+str(id)
-#         with open('../jobs/job-pod.yaml', 'r') as file :
-#             job_tmpl = file.read()
-#         filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU","1").replace("$NODE",cpu_to_machine[assignment[id]])
-#         filename = "../jobs/"+jobstr+".yaml"
-#         with open(filename, 'w') as file:
-#           file.write(filedata)
-#         subprocess.check_output(["kubectl","apply", "-f", filename])
+    
 
 def node_init():
     #---------- Start Server Node ----------
@@ -371,7 +363,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
         for i in range(trials):
             print("Iteration: ", i)
             # Generate Workload
-            x_0 = gen_workload(100, 1000, num_clients)
+            x_0 = gen_workload(100, 1000, num_clients, job_scheduling=False)
             flag, consensus_time, iteration, diameter, capacity = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
@@ -381,7 +373,13 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
             print("[Server] all client reset")
             if job_scheduling == True:
                 print("[Server] preparing to do job scheduling")
-                assignment = job_scheduler(x_0,capacity)
+                # Each task need 0.001 cpu
+                # All task of the same job should be put on one node (Multiple_Knapsack) mk
+                # Tasks of a node can be put on different nodes (Greedy) greedy
+                #TODO: Currently assuming one task per job
+                assignment = job_scheduler(x_0,capacity,type='mk')
+
+
                 print(assignment)
             server_node.reset()
 

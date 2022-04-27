@@ -8,7 +8,7 @@ spec:
   - image: busybox
     command:
       - sleep
-      - "3600"
+      - "15"
     imagePullPolicy: IfNotPresent
     resources:
       requests:
