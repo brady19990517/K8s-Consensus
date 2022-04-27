@@ -378,9 +378,9 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment = job_scheduler(x_0,capacity,type='mk')
-
-
+                run_jobs(assignment,x_0)
                 print(assignment)
+                
             server_node.reset()
 
 if __name__ == "__main__":
