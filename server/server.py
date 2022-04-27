@@ -303,13 +303,14 @@ def run_jobs(assignment,x_0,ip_node_dict):
         created_jobs.append(jobstr)
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]])
+        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",str(random.randint(15, 120)))
         filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
 
     # Rerun consensus algorithm if two jobs completed
+    complete_jobs = 0
     while complete_jobs < 2:
         out = subprocess.check_output(["kubectl","get", "jobs", "--field-selector", "status.successful=1"])
         print(out)

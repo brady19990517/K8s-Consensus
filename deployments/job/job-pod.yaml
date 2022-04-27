@@ -10,7 +10,7 @@ spec:
         image: busybox
         command:
         - sleep
-        - "15"
+        - $SLEEP_TIME
         imagePullPolicy: IfNotPresent
         resources:
           requests:
