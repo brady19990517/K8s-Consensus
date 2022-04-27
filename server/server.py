@@ -298,7 +298,7 @@ def run_jobs(assignment,x_0):
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
         filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",assignment[id])
-        filename = "../deployments/jobs/"+jobstr+".yaml"
+        filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
