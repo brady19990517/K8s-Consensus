@@ -180,12 +180,14 @@ def get_capacity():
             cap = int(cap)*1000
         result[name] = total_cap - cap
     # Match each scheduler to a node
-    lines = subprocess.check_output(["kubectl","get","pod","-o=custom-columns=NODE:.spec.nodeName,IP:.status.podIP"]).decode("utf-8").split('\n')
+    lines = subprocess.check_output(["kubectl","get","pod","-o=custom-columns=NODE:.spec.nodeName,IP:.status.podIP,NAME:metadata.name"]).decode("utf-8").split('\n')
     node_ip_dict = {}
     for i,l in enumerate(lines):
         if i==0 or len(l)==0:
             continue
         arr = lines[i].split()
+        if 'client' not in arr[2]:
+            continue
         print(arr)
         node_ip_dict[arr[0]] = arr[1]
     ip_node_dict = {v: k for k, v in node_ip_dict.items()}
@@ -316,7 +318,7 @@ def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
     while prev_completed_jobs >= completed_jobs:
         out = subprocess.check_output(["kubectl","get", "jobs", "--field-selector", "status.successful=1"])
         print(out)
-        complete_jobs = out.count(b'\n')-1
+        completed_jobs = out.count(b'\n')-1
         time.sleep(3)
         
     print("At least one job completed")
