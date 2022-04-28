@@ -410,8 +410,31 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 
 
                 print('Schedule unscheduled jobs: ', x_0)
+                # -------------- Second Round --------------
                 flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+                if flag == 1:
+                    log(server_node, num_clients, i, consensus_time, iteration, diameter)
+                print("Server Finish logging")
+                while server_node.client_reset_num < num_clients:
+                    time.sleep(2)
+                print("[Server] all client reset")
+                if job_scheduling == True:
+                    print("[Server] reset server: ", server_node.reset())
+                    print("[Server] preparing to do job scheduling")
+                    # Each task need 0.001 cpu
+                    # All task of the same job should be put on one node (Multiple_Knapsack) mk
+                    # Tasks of a node can be put on different nodes (Greedy) greedy
+                    #TODO: Currently assuming one task per job
+                    assignment = job_scheduler(x_0,capacity,type='mk')
+                    completed_jobs = run_jobs(assignment,x_0,ip_node_dict,completed_jobs)
+                    print(assignment)
 
+                    for job_id in assignment.keys():
+                        if assignment[job_id] != None:
+                            x_0[job_id] = 0
+                    
+
+                    print('Schedule unscheduled jobs second round: ', x_0)
                 
             server_node.reset()
 

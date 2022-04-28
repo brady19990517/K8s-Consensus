@@ -88,7 +88,9 @@ def start_client(node,cond,run_lock):
 
     #---------- Consensus Algorithm ----------
     # Send consensus start message to server
+    print("client start message sent to server")
     node.send_to_nodes(str({"start_consensus":None}))
+    print("Waiting for server send start message back")
     while node.start_consensus == False:
         time.sleep(2)
     print("[Client] start consensus")
