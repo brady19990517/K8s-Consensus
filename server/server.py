@@ -394,6 +394,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 time.sleep(2)
             print("[Server] all client reset")
             if job_scheduling == True:
+                print("[Server] reset server: ", server_node.reset())
                 print("[Server] preparing to do job scheduling")
                 # Each task need 0.001 cpu
                 # All task of the same job should be put on one node (Multiple_Knapsack) mk
@@ -407,6 +408,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                     if assignment[job_id] != None:
                         x_0[job_id] = 0
                 
+
                 print('Schedule unscheduled jobs: ', x_0)
                 flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
 
