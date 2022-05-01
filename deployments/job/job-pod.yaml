@@ -1,8 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: $JOBID
+  name: $NODE
 spec:
+  completions: $NUM_TASKS
   template:
     spec:
       containers:
@@ -10,11 +11,11 @@ spec:
         image: busybox
         command:
         - sleep
-        - "$SLEEP_TIME"
+        - "15"
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: $NUM_CPU
+            cpu: 10m
       restartPolicy: Never
       nodeSelector:
         name: $NODE

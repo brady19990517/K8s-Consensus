@@ -410,8 +410,8 @@ def run_tasks(assignment):
         num_task = len(assignment[client])
         if num_task == 0:
             continue
-        jobstr = "job-deployment-"+client
-        with open('../deployments/job/job-deployment.yaml', 'r') as file:
+        jobstr = "job-pod-"+client
+        with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
         filedata = job_tmpl.replace('$NODE',client).replace("$NUM_TASKS",str(num_task))
         filename = "../deployments/job/"+jobstr+".yaml"
