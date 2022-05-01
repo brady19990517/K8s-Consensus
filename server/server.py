@@ -151,7 +151,7 @@ def start_server(num_clients, server_node, HOSTNAME, x_0,job_scheduling=False,ma
         optimal_cap[host] = capacity[host]*server_node.z_storage[cur_iter][host]
 
 
-    return 1, consensus_time, cur_iter, diameter, optimal_cap, ip_node_dict
+    return 1, consensus_time, cur_iter, diameter, optimal_cap, ip_node_dict, capacity
 
 def get_capacity():
     lines = subprocess.check_output(["kubectl","describe","nodes"]).decode("utf-8").split('\n')
@@ -199,9 +199,7 @@ def get_capacity():
         new_result[node_ip_dict[key]] = value
     return new_result, ip_node_dict
         
-        
-
-def job_scheduler(workload, capacity, type='mk'):
+def job_scheduler_mk(workload, capacity, full_cap):
     ################Job/Task Distribute#################
     print("---Start Job Assigning---")
     start_job_assign_time = time.time()
@@ -289,7 +287,75 @@ def job_scheduler(workload, capacity, type='mk'):
             assignment[i] = None
     return assignment
     ###############################################
+
+def job_scheduler_greedy(workload, capacity, full_cap):
+    #order of client
+    cap_order = [k for k, v in sorted(capacity.items(), key=lambda item: item[1])]
+
+    #order of job
+    job_order = np.argsort(workload)
+
+    remain_cap = copy.deepcopy(full_cap)
+
+    total_tasks = np.sum(workload)
+
     
+    print("total_tasks: ", total_tasks)
+
+    job_idx = 0
+    task_idx = 0
+    assigned_tasks = 0
+    for c in cap_order:
+        cap = capacity[c]
+        while cap > 0:
+            cap -= 1
+            if cap < 0:
+                break
+            else:
+                remain_cap[c] -= 1
+                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",cap,"/",capacity[c])
+                task_idx+=1
+                assigned_tasks+=1
+                if task_idx==workload[job_order[job_idx]]-1:
+                    task_idx = 0
+                    job_idx+=1
+                if assigned_tasks == total_tasks:
+                    print("All tasks assigned")
+                    break
+        if assigned_tasks == total_tasks:
+            print("All tasks assigned")
+            break
+
+    
+    #Not all task are assinged because each client remaining space are unused
+    #Assgin remaining task to top clients
+    for c in cap_order:
+        cap = remain_cap[c]
+        while cap > 0:
+            cap -= 1
+            if cap < 0:
+                break
+            else:
+                remain_cap[c] -= 1
+                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",cap,"/",capacity[c])
+                task_idx+=1
+                assigned_tasks+=1
+                if task_idx==workload[job_order[job_idx]]-1:
+                    task_idx = 0
+                    job_idx+=1
+                if assigned_tasks == total_tasks:
+                    print("All tasks assigned")
+                    break
+        if assigned_tasks == total_tasks:
+            print("All tasks assigned")
+            break
+    return None
+
+def job_scheduler(workload, capacity, full_cap, type):
+    if type == 'mk':
+        return job_scheduler_mk(workload, capacity, full_cap)
+    elif type == 'greedy':
+        return job_scheduler_greedy(workload, capacity, full_cap)
     
 def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
     #Start Job assinging
@@ -386,7 +452,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
             print("Iteration: ", i)
             # Generate Workload
             x_0 = gen_workload(100, 1000, num_clients, job_scheduling=False)
-            flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+            flag, consensus_time, iteration, diameter, capacity, ip_node_dict, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
             print("Server Finish logging")
@@ -400,7 +466,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # All task of the same job should be put on one node (Multiple_Knapsack) mk
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
-                assignment = job_scheduler(x_0,capacity,type='mk')
+                assignment = job_scheduler(x_0,capacity,full_cap,type='greedy')
                 completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
                 print(assignment)
 
@@ -411,30 +477,30 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
 
                 print('Schedule unscheduled jobs: ', x_0)
                 # -------------- Second Round --------------
-                flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
-                if flag == 1:
-                    log(server_node, num_clients, i, consensus_time, iteration, diameter)
-                print("Server Finish logging")
-                while server_node.client_reset_num < num_clients:
-                    time.sleep(2)
-                print("[Server] all client reset")
-                if job_scheduling == True:
-                    print("[Server] reset server: ", server_node.reset())
-                    print("[Server] preparing to do job scheduling")
-                    # Each task need 0.001 cpu
-                    # All task of the same job should be put on one node (Multiple_Knapsack) mk
-                    # Tasks of a node can be put on different nodes (Greedy) greedy
-                    #TODO: Currently assuming one task per job
-                    assignment = job_scheduler(x_0,capacity,type='mk')
-                    completed_jobs = run_jobs(assignment,x_0,ip_node_dict,completed_jobs)
-                    print(assignment)
+                # flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+                # if flag == 1:
+                #     log(server_node, num_clients, i, consensus_time, iteration, diameter)
+                # print("Server Finish logging")
+                # while server_node.client_reset_num < num_clients:
+                #     time.sleep(2)
+                # print("[Server] all client reset")
+                # if job_scheduling == True:
+                #     print("[Server] reset server: ", server_node.reset())
+                #     print("[Server] preparing to do job scheduling")
+                #     # Each task need 0.001 cpu
+                #     # All task of the same job should be put on one node (Multiple_Knapsack) mk
+                #     # Tasks of a node can be put on different nodes (Greedy) greedy
+                #     #TODO: Currently assuming one task per job
+                #     assignment = job_scheduler(x_0,capacity,type='mk')
+                #     completed_jobs = run_jobs(assignment,x_0,ip_node_dict,completed_jobs)
+                #     print(assignment)
 
-                    for job_id in assignment.keys():
-                        if assignment[job_id] != None:
-                            x_0[job_id] = 0
+                #     for job_id in assignment.keys():
+                #         if assignment[job_id] != None:
+                #             x_0[job_id] = 0
                     
 
-                    print('Schedule unscheduled jobs second round: ', x_0)
+                #     print('Schedule unscheduled jobs second round: ', x_0)
                 
             server_node.reset()
 
