@@ -290,6 +290,8 @@ def job_scheduler_mk(workload, capacity, full_cap):
 
 def job_scheduler_greedy(workload, capacity, full_cap):
     assignment = {}
+    for c in capacity.keys():
+        assignment[c] = []
     #order of client
     workload = np.transpose(workload)[0]
     cap_order = [k for k, v in sorted(capacity.items(), key=lambda item: item[1], reverse=True)]
@@ -316,7 +318,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
             else:
                 remain_cap[c] -= 10
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Capcaity ",cap,"/",capacity[c])
-                assignment[(job_order[job_idx], task_idx)] = c
+                assignment[c].append((job_order[job_idx], task_idx))
                 if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
@@ -342,7 +344,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
             else:
                 remain_cap[c] -= 10
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
-                assignment[(job_order[job_idx], task_idx)] = c
+                assignment[c].append((job_order[job_idx], task_idx))
                 if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
@@ -399,6 +401,20 @@ def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
 
         # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
+def run_tasks(assignment):
+    for client in list(assignment.keys()):
+        print("Executing tasks on node: ", client)
+        num_task = len(assignment[client])
+        if num_task == 0:
+            continue
+        jobstr = "job-deployment-"+client
+        with open('../deployments/job/job-deployment.yaml', 'r') as file:
+            job_tmpl = file.read()
+        filedata = job_tmpl.replace('$NODE',client).replace("$NUM_TASKS",num_task).replace("$NODE",client)
+        filename = "../deployments/job/"+jobstr+".yaml"
+        with open(filename, 'w') as file:
+            file.write(filedata)
+        subprocess.check_output(["kubectl","apply", "-f", filename])
     
 
 def node_init():
@@ -458,6 +474,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
             print("Iteration: ", i)
             # Generate Workload
             x_0 = gen_workload(100, 1000, num_clients, job_scheduling)
+            print('workload: ', np.transpose(x_0)[0])
             flag, consensus_time, iteration, diameter, capacity, ip_node_dict, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
@@ -473,15 +490,18 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment = job_scheduler(x_0,capacity,full_cap,type='greedy')
-                completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
-                print(assignment)
+                run_tasks(assignment)
 
-                for job_id in assignment.keys():
-                    if assignment[job_id] != None:
-                        x_0[job_id] = 0
+                #--------- We now assume that all jobs/ tasks are scheduled in a single round---------
+                # completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
+                # print(assignment)
+
+                # for job_id in assignment.keys():
+                #     if assignment[job_id] != None:
+                #         x_0[job_id] = 0
                 
 
-                print('Schedule unscheduled jobs: ', x_0)
+                # print('Schedule unscheduled jobs: ', x_0)
                 # -------------- Second Round --------------
                 # flag, consensus_time, iteration, diameter, capacity, ip_node_dict = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
                 # if flag == 1:
@@ -504,9 +524,8 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 #     for job_id in assignment.keys():
                 #         if assignment[job_id] != None:
                 #             x_0[job_id] = 0
-                    
-
                 #     print('Schedule unscheduled jobs second round: ', x_0)
+                #--------------------------------------------------------------------------
                 
             server_node.reset()
 
