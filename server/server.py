@@ -289,12 +289,13 @@ def job_scheduler_mk(workload, capacity, full_cap):
     ###############################################
 
 def job_scheduler_greedy(workload, capacity, full_cap):
+    assignment = {}
     #order of client
     workload = np.transpose(workload)[0]
-    cap_order = [k for k, v in sorted(capacity.items(), key=lambda item: item[1])]
+    cap_order = [k for k, v in sorted(capacity.items(), key=lambda item: item[1], reverse=True)]
 
     #order of job
-    job_order = np.argsort(workload)
+    job_order = np.argsort(workload)[::-1]
 
     remain_cap = copy.deepcopy(full_cap)
 
@@ -314,7 +315,8 @@ def job_scheduler_greedy(workload, capacity, full_cap):
                 break
             else:
                 remain_cap[c] -= 10
-                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
+                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Capcaity ",cap,"/",capacity[c])
+                assignment[(job_order[job_idx], task_idx)] = c
                 if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
@@ -328,7 +330,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
             print("All tasks assigned")
             break
 
-    
+    print("Extra space needed... Schedule to top capacity node again")
     #Not all task are assinged because each client remaining space are unused
     #Assgin remaining task to top clients
     for c in cap_order:
@@ -340,6 +342,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
             else:
                 remain_cap[c] -= 10
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
+                assignment[(job_order[job_idx], task_idx)] = c
                 if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
@@ -352,7 +355,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
         if assigned_tasks == total_tasks:
             print("All tasks assigned")
             break
-    return None
+    return assignment
 
 def job_scheduler(workload, capacity, full_cap, type):
     if type == 'mk':
