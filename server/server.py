@@ -290,7 +290,7 @@ def job_scheduler_mk(workload, capacity, full_cap):
 
 def job_scheduler_greedy(workload, capacity, full_cap):
     #order of client
-
+    workload = np.transpose(workload)[0]
     cap_order = [k for k, v in sorted(capacity.items(), key=lambda item: item[1])]
 
     #order of job
@@ -298,7 +298,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
 
     remain_cap = copy.deepcopy(full_cap)
 
-    total_tasks = np.sum(workload)/100
+    total_tasks = np.sum(workload)/10
 
     
     print("total_tasks: ", total_tasks)
@@ -309,17 +309,18 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     for c in cap_order:
         cap = capacity[c]
         while cap > 0:
-            cap -= 100
+            cap -= 10
             if cap < 0:
                 break
             else:
-                remain_cap[c] -= 100
-                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",cap,"/",capacity[c])
-                task_idx+=1
-                assigned_tasks+=1
-                if task_idx==(workload[job_order[job_idx]]/100)-1:
+                remain_cap[c] -= 10
+                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
+                if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
+                else:
+                    task_idx+=1
+                assigned_tasks+=1
                 if assigned_tasks == total_tasks:
                     print("All tasks assigned")
                     break
@@ -333,17 +334,18 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     for c in cap_order:
         cap = remain_cap[c]
         while cap > 0:
-            cap -= 100
+            cap -= 10
             if cap < 0:
                 break
             else:
-                remain_cap[c] -= 100
-                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",cap,"/",capacity[c])
-                task_idx+=1
-                assigned_tasks+=1
-                if task_idx==(workload[job_order[job_idx]]/100)-1:
+                remain_cap[c] -= 10
+                print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
+                if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
+                else:
+                    task_idx+=1
+                assigned_tasks+=1
                 if assigned_tasks == total_tasks:
                     print("All tasks assigned")
                     break
