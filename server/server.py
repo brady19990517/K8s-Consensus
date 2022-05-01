@@ -331,7 +331,10 @@ def job_scheduler_greedy(workload, capacity, full_cap):
         if assigned_tasks == total_tasks:
             print("All tasks assigned")
             break
-
+    
+    if assigned_tasks == total_tasks:
+        print("All tasks assigned")
+        return assignment
     print("Extra space needed... Schedule to top capacity node again")
     #Not all task are assinged because each client remaining space are unused
     #Assgin remaining task to top clients
