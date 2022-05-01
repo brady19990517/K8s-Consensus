@@ -297,7 +297,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
 
     remain_cap = copy.deepcopy(full_cap)
 
-    total_tasks = np.sum(workload)
+    total_tasks = np.sum(workload)/10
 
     
     print("total_tasks: ", total_tasks)
@@ -308,15 +308,15 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     for c in cap_order:
         cap = capacity[c]
         while cap > 0:
-            cap -= 1
+            cap -= 10
             if cap < 0:
                 break
             else:
-                remain_cap[c] -= 1
+                remain_cap[c] -= 10
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",cap,"/",capacity[c])
                 task_idx+=1
                 assigned_tasks+=1
-                if task_idx==workload[job_order[job_idx]]-1:
+                if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
                 if assigned_tasks == total_tasks:
@@ -332,15 +332,15 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     for c in cap_order:
         cap = remain_cap[c]
         while cap > 0:
-            cap -= 1
+            cap -= 10
             if cap < 0:
                 break
             else:
-                remain_cap[c] -= 1
+                remain_cap[c] -= 10
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",cap,"/",capacity[c])
                 task_idx+=1
                 assigned_tasks+=1
-                if task_idx==workload[job_order[job_idx]]-1:
+                if task_idx==(workload[job_order[job_idx]]/10)-1:
                     task_idx = 0
                     job_idx+=1
                 if assigned_tasks == total_tasks:
@@ -451,7 +451,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
         for i in range(trials):
             print("Iteration: ", i)
             # Generate Workload
-            x_0 = gen_workload(100, 1000, num_clients, job_scheduling=False)
+            x_0 = gen_workload(100, 1000, num_clients, job_scheduling)
             flag, consensus_time, iteration, diameter, capacity, ip_node_dict, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
