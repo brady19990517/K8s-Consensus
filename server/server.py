@@ -404,8 +404,9 @@ def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
 
         # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
-def run_tasks(assignment):
-    for client in list(assignment.keys()):
+def run_tasks(assignment,ip_node_dict):
+    for ip in list(assignment.keys()):
+        client = ip_node_dict[ip]
         print("Executing tasks on node: ", client)
         num_task = len(assignment[client])
         if num_task == 0:
@@ -413,7 +414,7 @@ def run_tasks(assignment):
         jobstr = "job-pod-"+client
         with open('../deployments/job/job-pod.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace('$NODE',client).replace("$NUM_TASKS",str(num_task))
+        filedata = job_tmpl.replace('$NODE',client).replace("$NUM_TASKS",str(num_task)).replace("$NODE",client)
         filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
@@ -493,7 +494,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment = job_scheduler(x_0,capacity,full_cap,type='greedy')
-                run_tasks(assignment)
+                run_tasks(assignment,ip_node_dict)
 
                 #--------- We now assume that all jobs/ tasks are scheduled in a single round---------
                 # completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
