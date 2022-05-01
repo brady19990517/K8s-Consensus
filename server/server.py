@@ -408,7 +408,7 @@ def run_tasks(assignment,ip_node_dict):
     for ip in list(assignment.keys()):
         client = ip_node_dict[ip]
         print("Executing tasks on node: ", client)
-        num_task = len(assignment[client])
+        num_task = len(assignment[ip])
         if num_task == 0:
             continue
         jobstr = "job-pod-"+client
