@@ -413,7 +413,7 @@ def run_tasks(assignment):
         jobstr = "job-deployment-"+client
         with open('../deployments/job/job-deployment.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace('$NODE',client).replace("$NUM_TASKS",num_task).replace("$NODE",client)
+        filedata = job_tmpl.replace('$NODE',client).replace("$NUM_TASKS",str(num_task))
         filename = "../deployments/job/"+jobstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
