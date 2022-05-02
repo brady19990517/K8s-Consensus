@@ -441,10 +441,12 @@ def run_tasks(assignment,ip_node_dict):
         if complete == len(assignment):
             break
 
+        
+
+        print("Current Completed Job: ", complete)
+        print(current_cluster_cpu())
+
         count += 1
-        if count % 100 == 0:
-            print("Current Completed Job: ", complete)
-            print(current_cluster_cpu)
 
     print("All task finish exec")
     execute_time = time.time() - start_execute_time
@@ -482,11 +484,12 @@ def default_scheduler_run_tasks(x_0):
         if complete == len(workload):
             break
 
+    
+        print("Current Completed Job: ", complete)
+        print(current_cluster_cpu())
+
         count += 1
-        if count % 100 == 0:
-            print("Current Completed Job: ", complete)
-            print(current_cluster_cpu)
-            
+
     print("All task finish exec")
     execute_time = time.time() - start_execute_time
     return execute_time
@@ -659,7 +662,7 @@ if __name__ == "__main__":
     base_time = default_scheduler_run_tasks(x_0)
     print("Base Time: ", base_time)
     subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    time.sleep(20)
+    time.sleep(30)
 
     print("Start Distributed Scheduler")
     run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
