@@ -475,7 +475,7 @@ def default_scheduler_run_tasks(x_0):
     workload = np.transpose(x_0)[0]
     task_arr = []
     for job in workload:
-        task_arr.append(job/10)
+        task_arr.append(job/100)
     start_execute_time = time.time()
     node_task_dict = {}
     for i,tasks in enumerate(task_arr):
