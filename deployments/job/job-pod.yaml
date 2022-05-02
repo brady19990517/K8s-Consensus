@@ -3,6 +3,7 @@ kind: Job
 metadata:
   name: $NODE
 spec:
+  parallelism: $NUM_TASKS
   completions: $NUM_TASKS
   template:
     spec:

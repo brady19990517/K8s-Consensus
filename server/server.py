@@ -363,10 +363,13 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     return assignment
 
 def job_scheduler(workload, capacity, full_cap, type):
+    start_job_schedule_time = time.time()
     if type == 'mk':
-        return job_scheduler_mk(workload, capacity, full_cap)
+        assignment = job_scheduler_mk(workload, capacity, full_cap)
     elif type == 'greedy':
-        return job_scheduler_greedy(workload, capacity, full_cap)
+        assignment = job_scheduler_greedy(workload, capacity, full_cap)
+    job_schedule_time = time.time() - start_job_schedule_time
+    return assignment, job_schedule_time
     
 def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
     #Start Job assinging
@@ -405,10 +408,13 @@ def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
         # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
 def run_tasks(assignment,ip_node_dict):
+    start_execute_time = time.time()
+    node_task_dict = {}
     for ip in list(assignment.keys()):
         client = ip_node_dict[ip]
         print("Executing tasks on node: ", client)
         num_task = len(assignment[ip])
+        node_task_dict[client] = num_task
         if num_task == 0:
             continue
         jobstr = "job-pod-"+client
@@ -419,6 +425,23 @@ def run_tasks(assignment,ip_node_dict):
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
+    
+    
+    while True:
+        complete = 0
+        for key, task in node_task_dict.items():
+            lines = subprocess.check_output(["kubectl","get", "jobs", key])
+            line_arr = lines.split(b'\n')[1]
+            arr = line_arr.split()
+            finish_task = arr[1].split(b'/')[0]
+            finish_task = int(finish_task)
+            if finish_task == task:
+                complete+=1
+        if complete == len(assignment):
+            break
+    print("All task finish exec")
+    execute_time = time.time() - start_execute_time
+    return execute_time
     
 
 def node_init():
@@ -493,8 +516,9 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 # All task of the same job should be put on one node (Multiple_Knapsack) mk
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
-                assignment = job_scheduler(x_0,capacity,full_cap,type='greedy')
-                run_tasks(assignment,ip_node_dict)
+                assignment,job_schedule_time = job_scheduler(x_0,capacity,full_cap,type='greedy')
+                execute_time = run_tasks(assignment,ip_node_dict)
+                print("Consensus Time: ", consensus_time, "Job Scheduling Time: ", job_schedule_time, "Job Execution Time: ", execute_time)
 
                 #--------- We now assume that all jobs/ tasks are scheduled in a single round---------
                 # completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
