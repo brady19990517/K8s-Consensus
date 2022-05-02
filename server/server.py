@@ -302,7 +302,7 @@ def job_scheduler_greedy(workload, capacity, full_cap):
 
     remain_cap = copy.deepcopy(full_cap)
 
-    total_tasks = np.sum(workload)/10
+    total_tasks = np.sum(workload)/100
 
     
     print("total_tasks: ", total_tasks)
@@ -313,14 +313,14 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     for c in cap_order:
         cap = capacity[c]
         while cap > 0:
-            cap -= 10
+            cap -= 100
             if cap < 0:
                 break
             else:
-                remain_cap[c] -= 10
+                remain_cap[c] -= 100
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Capcaity ",cap,"/",capacity[c])
                 assignment[c].append((job_order[job_idx], task_idx))
-                if task_idx==(workload[job_order[job_idx]]/10)-1:
+                if task_idx==(workload[job_order[job_idx]]/100)-1:
                     task_idx = 0
                     job_idx+=1
                 else:
@@ -342,14 +342,14 @@ def job_scheduler_greedy(workload, capacity, full_cap):
     for c in cap_order:
         cap = remain_cap[c]
         while cap > 0:
-            cap -= 10
+            cap -= 100
             if cap < 0:
                 break
             else:
-                remain_cap[c] -= 10
+                remain_cap[c] -= 100
                 print("Assiging Job ",job_order[job_idx],"Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
                 assignment[c].append((job_order[job_idx], task_idx))
-                if task_idx==(workload[job_order[job_idx]]/10)-1:
+                if task_idx==(workload[job_order[job_idx]]/100)-1:
                     task_idx = 0
                     job_idx+=1
                 else:

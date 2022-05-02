@@ -17,8 +17,8 @@ spec:
       containers:
       - name: busybox
         image: busybox
-        command: ["yes"]
-        args: ["hello"]
+        command: ["while true; do echo hello; sleep 10;done"]
+        # args: ["hello"]
         imagePullPolicy: IfNotPresent
         resources:
           requests:
