@@ -427,7 +427,7 @@ def run_tasks(assignment,ip_node_dict):
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
     
-    
+    count = 0
     while True:
         complete = 0
         for key, task in node_task_dict.items():
@@ -440,6 +440,12 @@ def run_tasks(assignment,ip_node_dict):
                 complete+=1
         if complete == len(assignment):
             break
+
+        count += 1
+        if count % 100 == 0:
+            print("Current Completed Job: ", complete)
+            print(current_cluster_cpu)
+
     print("All task finish exec")
     execute_time = time.time() - start_execute_time
     return execute_time
@@ -462,7 +468,7 @@ def default_scheduler_run_tasks(x_0):
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
     
-    
+    count = 0
     while True:
         complete = 0
         for key, task in node_task_dict.items():
@@ -475,9 +481,43 @@ def default_scheduler_run_tasks(x_0):
                 complete+=1
         if complete == len(workload):
             break
+
+        count += 1
+        if count % 100 == 0:
+            print("Current Completed Job: ", complete)
+            print(current_cluster_cpu)
+            
     print("All task finish exec")
     execute_time = time.time() - start_execute_time
     return execute_time
+
+def current_cluster_cpu():
+    lines = subprocess.check_output(["kubectl","describe","nodes"]).decode("utf-8").split('\n')
+    name_index = []
+    cpu_index = []
+    total_cpu_index = []
+    for i,l in enumerate(lines):
+        if 'Name:' in l and 'caelum-' in l:
+            name_index.append(i)
+        if 'Allocatable' in l:
+            total_cpu_index.append(i+1)
+        if 'Allocated resources' in l:
+            cpu_index.append(i+4)
+    # Get node total capacity and current capacity to obtain remain capcity
+    result = {}
+    for i,idx in enumerate(cpu_index):
+        name_arr = lines[name_index[i]].split()
+        total_cpu_arr = lines[total_cpu_index[i]].split()
+        cpu_arr = lines[idx].split()
+        name = name_arr[1]
+        total_cap = int(total_cpu_arr[1])*1000
+        cap = cpu_arr[1]
+        if 'm' in cap:
+            cap = int(cap[:-1])
+        else:
+            cap = int(cap)*1000
+        result[name] = round((cap/total_cap)*100,3)
+    return result
     
 
 def node_init():
@@ -614,9 +654,15 @@ if __name__ == "__main__":
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
     x_0 = gen_workload(100, 1000, 9, job_scheduling)
-    # run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+    
+    print("Start Default Scheduler")
     base_time = default_scheduler_run_tasks(x_0)
     print("Base Time: ", base_time)
+    subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+    time.sleep(20)
+
+    print("Start Distributed Scheduler")
+    run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
 
 
         

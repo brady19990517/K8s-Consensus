@@ -12,12 +12,10 @@ spec:
         image: busybox
         command:
         - sleep
-        - "15"
+        - "30"
         imagePullPolicy: IfNotPresent
         resources:
           requests:
             cpu: 10m
       restartPolicy: Never
-      nodeSelector:
-        name: default-scheduler
   backoffLimit: 4
