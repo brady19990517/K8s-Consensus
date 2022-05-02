@@ -17,12 +17,12 @@ spec:
       containers:
       - name: busybox
         image: busybox
-        command: ["while true; do echo hello; sleep 10;done"]
-        # args: ["hello"]
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo hello; sleep 10;done"]
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 10m
+            cpu: 100m
       # nodeSelector:
       #   name: $NODE
 
