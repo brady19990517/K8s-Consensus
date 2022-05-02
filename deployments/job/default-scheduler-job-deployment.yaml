@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $JOB_NAME
+  labels:
+    app: busybox
+spec:
+  replicas: $NUM_TASKS
+  selector:
+    matchLabels:
+      client: $JOB_NAME
+  template:
+    metadata:
+      labels:
+        client: $JOB_NAME
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command: ["yes"]
+        args: ["hello"]
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 10m
+      # nodeSelector:
+      #   name: $NODE
+

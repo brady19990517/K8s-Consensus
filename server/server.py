@@ -462,7 +462,10 @@ def run_tasks(assignment,ip_node_dict):
             break
 
     print("All node finish first task exec")
+    execute_time = time.time() - start_execute_time
     print(current_cluster_cpu())
+    print('wait to get cluster status')
+    time.sleep(15)
 
     # print("All task finish exec")
     execute_time = time.time() - start_execute_time
@@ -478,7 +481,7 @@ def default_scheduler_run_tasks(x_0):
     for i,tasks in enumerate(task_arr):
         jobstr = "default-scheduler-job-" + str(i)
         node_task_dict[jobstr] = tasks
-        with open('../deployments/job/default-scheduler-job.yaml', 'r') as file:
+        with open('../deployments/job/default-scheduler-job-deployment.yaml', 'r') as file:
             job_tmpl = file.read()
         filedata = job_tmpl.replace("$NUM_TASKS",str(tasks)).replace('$JOB_NAME',jobstr)
         filename = "../deployments/job/"+jobstr+".yaml"
@@ -520,10 +523,10 @@ def default_scheduler_run_tasks(x_0):
             break
 
     print("All node finish first task exec")
-    print(current_cluster_cpu())
-
-
     execute_time = time.time() - start_execute_time
+    print(current_cluster_cpu())
+    print('wait to get cluster status')
+    time.sleep(15)
 
     return execute_time
 
@@ -627,6 +630,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
             if job_scheduling == True:
                 print("Delete all schedulers")
                 subprocess.check_output(["kubectl","delete","deployments/client"])
+                print("waiting to delete scheudlers")
                 time.sleep(20)
                 print("[Server] reset server: ", server_node.reset())
                 print("[Server] preparing to do job scheduling")
@@ -697,8 +701,10 @@ if __name__ == "__main__":
     print("Start Default Scheduler")
     base_time = default_scheduler_run_tasks(x_0)
     print("Base Time: ", base_time)
-    subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    time.sleep(30)
+    # subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+    subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+    print("waiting for all jobs to be deleted")
+    time.sleep(60)
 
     print("Start Distributed Scheduler")
     run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
