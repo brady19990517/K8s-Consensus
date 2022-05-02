@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: $JOB_NAME
+spec:
+  parallelism: $NUM_TASKS
+  completions: $NUM_TASKS
+  template:
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command:
+        - sleep
+        - "15"
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: 10m
+      restartPolicy: Never
+      nodeSelector:
+        name: default-scheduler
+  backoffLimit: 4

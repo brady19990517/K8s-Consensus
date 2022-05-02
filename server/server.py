@@ -1,3 +1,4 @@
+from ast import JoinedStr
 from http import server
 import sys
 import time
@@ -442,6 +443,41 @@ def run_tasks(assignment,ip_node_dict):
     print("All task finish exec")
     execute_time = time.time() - start_execute_time
     return execute_time
+
+def default_scheduler_run_tasks(x_0):
+    workload = np.transpose(x_0)[0]
+    task_arr = []
+    for job in workload:
+        task_arr.append(job/10)
+    start_execute_time = time.time()
+    node_task_dict = {}
+    for i,tasks in enumerate(task_arr):
+        jobstr = "default-scheduler-job-" + str(i)
+        node_task_dict[jobstr] = tasks
+        with open('../deployments/job/default-scheduler-job.yaml', 'r') as file:
+            job_tmpl = file.read()
+        filedata = job_tmpl.replace("$NUM_TASKS",str(tasks)).replace('$JOB_NAME',jobstr)
+        filename = "../deployments/job/"+jobstr+".yaml"
+        with open(filename, 'w') as file:
+            file.write(filedata)
+        subprocess.check_output(["kubectl","apply", "-f", filename])
+    
+    
+    while True:
+        complete = 0
+        for key, task in node_task_dict.items():
+            lines = subprocess.check_output(["kubectl","get", "jobs", key])
+            line_arr = lines.split(b'\n')[1]
+            arr = line_arr.split()
+            finish_task = arr[1].split(b'/')[0]
+            finish_task = int(finish_task)
+            if finish_task == task:
+                complete+=1
+        if complete == len(workload):
+            break
+    print("All task finish exec")
+    execute_time = time.time() - start_execute_time
+    return execute_time
     
 
 def node_init():
@@ -493,14 +529,17 @@ def log(server_node, num_clients, i, consensus_time, iteration, diameter):
     myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
     myfile.close()
 
-def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
+def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=None):
     for num_clients in nodes:
         create_clients(num_clients)
         # Trials
         for i in range(trials):
             print("Iteration: ", i)
             # Generate Workload
-            x_0 = gen_workload(100, 1000, num_clients, job_scheduling)
+            if job_scheduling:
+                assert(x_0 is not None)
+            else:
+                x_0 = gen_workload(100, 1000, num_clients, job_scheduling)
             print('workload: ', np.transpose(x_0)[0])
             flag, consensus_time, iteration, diameter, capacity, ip_node_dict, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
@@ -519,6 +558,9 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False):
                 assignment,job_schedule_time = job_scheduler(x_0,capacity,full_cap,type='greedy')
                 execute_time = run_tasks(assignment,ip_node_dict)
                 print("Consensus Time: ", consensus_time, "Job Scheduling Time: ", job_schedule_time, "Job Execution Time: ", execute_time)
+                total_time = consensus_time + job_schedule_time + execute_time
+                print('Total Time: ', total_time)
+
 
                 #--------- We now assume that all jobs/ tasks are scheduled in a single round---------
                 # completed_jobs = run_jobs(assignment,x_0,ip_node_dict,0)
@@ -571,7 +613,12 @@ if __name__ == "__main__":
     if job_scheduling:
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
-    run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling)
+    x_0 = gen_workload(100, 1000, 9, job_scheduling)
+    # run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+    base_time = default_scheduler_run_tasks(x_0)
+    print("Base Time: ", base_time)
+
+
         
 
 
