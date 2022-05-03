@@ -683,7 +683,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
             server_node.reset()
 
 if __name__ == "__main__":
-    server_node, HOSTNAME = node_init()
+    
     #---------- Setting Parameters ----------
     random.seed(1234)
     # trials = 10
@@ -709,6 +709,7 @@ if __name__ == "__main__":
     time.sleep(40)
 
     print("Start Distributed Scheduler")
+    server_node, HOSTNAME = node_init()
     run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
 
 
