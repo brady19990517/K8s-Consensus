@@ -461,14 +461,17 @@ def run_tasks(assignment,ip_node_dict):
         if complete == len(assignment):
             break
 
+        
+    # print('wait for all tasks to start burning')
+    # time.sleep(30)
+
+
     print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
     print(current_cluster_cpu())
     print('wait to get cluster status')
     time.sleep(15)
 
-    # print("All task finish exec")
-    execute_time = time.time() - start_execute_time
     return execute_time
 
 def default_scheduler_run_tasks(x_0):
