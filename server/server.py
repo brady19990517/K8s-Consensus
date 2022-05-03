@@ -701,8 +701,8 @@ if __name__ == "__main__":
     print("Start Default Scheduler")
     base_time = default_scheduler_run_tasks(x_0)
     print("Base Time: ", base_time)
-    # subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+    subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+    # subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
     print("waiting for all jobs to be deleted")
     time.sleep(60)
 
