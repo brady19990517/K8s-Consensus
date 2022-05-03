@@ -162,7 +162,7 @@ def get_capacity():
     for i,l in enumerate(lines):
         if 'Name:' in l and 'caelum-' in l:
             name_index.append(i)
-        if 'Allocatable' in l:
+        if 'Allocatable:' in l:
             total_cpu_index.append(i+1)
         if 'Allocated resources' in l:
             cpu_index.append(i+4)
@@ -481,7 +481,7 @@ def default_scheduler_run_tasks(x_0):
     for i,tasks in enumerate(task_arr):
         jobstr = "default-scheduler-job-" + str(i)
         node_task_dict[jobstr] = tasks
-        with open('../deployments/job/default-scheduler-job-deployment.yaml', 'r') as file:
+        with open('../deployments/job/default-scheduler-job.yaml', 'r') as file:
             job_tmpl = file.read()
         filedata = job_tmpl.replace("$NUM_TASKS",str(tasks)).replace('$JOB_NAME',jobstr)
         filename = "../deployments/job/"+jobstr+".yaml"
@@ -538,7 +538,7 @@ def current_cluster_cpu():
     for i,l in enumerate(lines):
         if 'Name:' in l and 'caelum-' in l:
             name_index.append(i)
-        if 'Allocatable' in l:
+        if 'Allocatable:' in l:
             total_cpu_index.append(i+1)
         if 'Allocated resources' in l:
             cpu_index.append(i+4)
@@ -628,10 +628,10 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 time.sleep(2)
             print("[Server] all client reset")
             if job_scheduling == True:
-                print("Delete all schedulers")
-                subprocess.check_output(["kubectl","delete","deployments/client"])
-                print("waiting to delete scheudlers")
-                time.sleep(20)
+                # print("Delete all schedulers")
+                # subprocess.check_output(["kubectl","delete","deployments/client"])
+                # print("waiting to delete scheudlers")
+                # time.sleep(20)
                 print("[Server] reset server: ", server_node.reset())
                 print("[Server] preparing to do job scheduling")
                 # Each task need 0.001 cpu
