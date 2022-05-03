@@ -16,7 +16,7 @@ spec:
         imagePullPolicy: IfNotPresent
         resources:
           requests:
-            cpu: 10m
+            cpu: 100m
       restartPolicy: Never
       nodeSelector:
         name: $NODE

@@ -697,20 +697,22 @@ if __name__ == "__main__":
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
     x_0 = gen_workload(100, 1000, 9, job_scheduling)
-    
+
+    # create clients for default scheduler
+    create_clients(9)
     print("Start Default Scheduler")
     base_time = default_scheduler_run_tasks(x_0)
     print("Base Time: ", base_time)
     subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    # subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-    print("waiting for all jobs to be deleted")
-    time.sleep(60)
+    subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+    print("waiting for all jobs and deployment to be deleted")
+    time.sleep(40)
 
     print("Start Distributed Scheduler")
     run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
 
 
-        
+
 
 
             
