@@ -448,29 +448,32 @@ def run_tasks(assignment,ip_node_dict):
 
     #     count += 1
 
-    while True:
-        complete = 0
-        for key, task in node_task_dict.items():
-            lines = subprocess.check_output(["kubectl","get", "jobs", key])
-            line_arr = lines.split(b'\n')[1]
-            arr = line_arr.split()
-            finish_task = arr[1].split(b'/')[0]
-            finish_task = int(finish_task)
-            if finish_task >= 1:
-                complete+=1
-        if complete == len(assignment):
-            break
+    # while True:
+    #     complete = 0
+    #     for key, task in node_task_dict.items():
+    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
+    #         line_arr = lines.split(b'\n')[1]
+    #         arr = line_arr.split()
+    #         finish_task = arr[1].split(b'/')[0]
+    #         finish_task = int(finish_task)
+    #         if finish_task >= 1:
+    #             complete+=1
+    #     if complete == len(assignment):
+    #         break
+    # print("All node finish first task exec")
+    # execute_time = time.time() - start_execute_time
+    # print(current_cluster_cpu())
+    # print('wait to get cluster status')
+    # time.sleep(15)
 
-        
-    # print('wait for all tasks to start burning')
-    # time.sleep(30)
 
-
-    print("All node finish first task exec")
-    execute_time = time.time() - start_execute_time
+    print('Wait for all tasks to start burning')
+    time.sleep(40)
+    print('All task start burning')
     print(current_cluster_cpu())
-    print('wait to get cluster status')
-    time.sleep(15)
+    print('Get current cluster cpu')
+    time.sleep(10)
+    execute_time = time.time() - start_execute_time
 
     return execute_time
 
@@ -512,25 +515,33 @@ def default_scheduler_run_tasks(x_0):
 
     #     count += 1
 
-    while True:
-        complete = 0
-        for key, task in node_task_dict.items():
-            lines = subprocess.check_output(["kubectl","get", "jobs", key])
-            line_arr = lines.split(b'\n')[1]
-            arr = line_arr.split()
-            finish_task = arr[1].split(b'/')[0]
-            finish_task = int(finish_task)
-            if finish_task >= 1:
-                complete+=1
-        if complete == len(workload):
-            break
+    # while True:
+    #     complete = 0
+    #     for key, task in node_task_dict.items():
+    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
+    #         line_arr = lines.split(b'\n')[1]
+    #         arr = line_arr.split()
+    #         finish_task = arr[1].split(b'/')[0]
+    #         finish_task = int(finish_task)
+    #         if finish_task >= 1:
+    #             complete+=1
+    #     if complete == len(workload):
+    #         break
 
-    print("All node finish first task exec")
-    execute_time = time.time() - start_execute_time
+    # print("All node finish first task exec")
+    # execute_time = time.time() - start_execute_time
+    # print(current_cluster_cpu())
+    # print('wait to get cluster status')
+    # time.sleep(15)
+
+    print('Wait for all tasks to start burning')
+    time.sleep(40)
+    print('All task start burning')
     print(current_cluster_cpu())
-    print('wait to get cluster status')
-    time.sleep(15)
-
+    print('Get current cluster cpu')
+    time.sleep(10)
+    execute_time = time.time() - start_execute_time
+    
     return execute_time
 
 def current_cluster_cpu():
