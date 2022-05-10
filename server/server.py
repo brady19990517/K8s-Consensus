@@ -484,7 +484,7 @@ def default_scheduler_run_tasks(x_0):
             arr = line_arr.split()
             finish_task = arr[1].split(b'/')[0]
             finish_task = int(finish_task)
-            if finish_task == task:
+            if finish_task >= task:
                 complete+=1
         if complete == len(workload):
             break
