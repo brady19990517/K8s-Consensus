@@ -439,8 +439,6 @@ def run_tasks(assignment,ip_node_dict):
                 complete+=1
         if complete == len(assignment):
             break
-    
-    print('assignemnt len: ', len(assignment))
     print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
     cluster_cpu = current_cluster_cpu()
@@ -465,6 +463,7 @@ def default_scheduler_run_tasks(x_0):
     task_arr = []
     for job in workload:
         task_arr.append(job/100)
+    print('elasped time: ', time.time() - start_execute_time)
     node_task_dict = {}
     for i,tasks in enumerate(task_arr):
         jobstr = "default-scheduler-job-" + str(i)
@@ -489,8 +488,7 @@ def default_scheduler_run_tasks(x_0):
                 complete+=1
         if complete == len(workload):
             break
-    
-    print('workload len: ', len(workload))
+
     print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
     cluster_cpu = current_cluster_cpu()
@@ -661,7 +659,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 #--------------------------------------------------------------------------
                 
             server_node.reset()
-    return total_time, cluster_cpu
+    return total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu
 
 if __name__ == "__main__":
     
@@ -693,7 +691,7 @@ if __name__ == "__main__":
 
         print("Start Distributed Scheduler")
         server_node, HOSTNAME = node_init()
-        total_time, cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
         server_node.stop()
         subprocess.check_output(["kubectl","delete", "jobs", "--all"])
         subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
@@ -706,6 +704,9 @@ if __name__ == "__main__":
         myfile.write(str(base_time) + '\n')
         myfile.write(json.dumps(cluster_cpu_default)+ '\n')
         myfile.write(str(total_time) + '\n')
+        myfile.write(str(consensus_time) + '\n')
+        myfile.write(str(job_schedule_time) + '\n')
+        myfile.write(str(execute_time) + '\n')
         myfile.write(json.dumps(cluster_cpu)+ '\n')
         myfile.close()
 
