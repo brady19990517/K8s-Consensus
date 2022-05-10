@@ -732,6 +732,7 @@ if __name__ == "__main__":
         print("Start Distributed Scheduler")
         server_node, HOSTNAME = node_init()
         execute_time, cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        server_node.stop()
         subprocess.check_output(["kubectl","delete", "jobs", "--all"])
         subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
         print("waiting for all jobs and deployment to be deleted")
