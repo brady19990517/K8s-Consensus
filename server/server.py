@@ -426,27 +426,6 @@ def run_tasks(assignment,ip_node_dict):
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
-    
-    # count = 0
-    # while True:
-    #     complete = 0
-    #     for key, task in node_task_dict.items():
-    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
-    #         line_arr = lines.split(b'\n')[1]
-    #         arr = line_arr.split()
-    #         finish_task = arr[1].split(b'/')[0]
-    #         finish_task = int(finish_task)
-    #         if finish_task == task:
-    #             complete+=1
-    #     if complete == len(assignment):
-    #         break
-
-        
-
-    #     print("Current Completed Job: ", complete)
-    #     print(current_cluster_cpu())
-
-    #     count += 1
 
     while True:
         complete = 0
@@ -460,6 +439,8 @@ def run_tasks(assignment,ip_node_dict):
                 complete+=1
         if complete == len(assignment):
             break
+    
+    print('assignemnt len: ', len(assignment))
     print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
     cluster_cpu = current_cluster_cpu()
@@ -479,11 +460,11 @@ def run_tasks(assignment,ip_node_dict):
     return execute_time, cluster_cpu
 
 def default_scheduler_run_tasks(x_0):
+    start_execute_time = time.time()
     workload = np.transpose(x_0)[0]
     task_arr = []
     for job in workload:
         task_arr.append(job/100)
-    start_execute_time = time.time()
     node_task_dict = {}
     for i,tasks in enumerate(task_arr):
         jobstr = "default-scheduler-job-" + str(i)
@@ -496,26 +477,6 @@ def default_scheduler_run_tasks(x_0):
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
     
-    # count = 0
-    # while True:
-    #     complete = 0
-    #     for key, task in node_task_dict.items():
-    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
-    #         line_arr = lines.split(b'\n')[1]
-    #         arr = line_arr.split()
-    #         finish_task = arr[1].split(b'/')[0]
-    #         finish_task = int(finish_task)
-    #         if finish_task == task:
-    #             complete+=1
-    #     if complete == len(workload):
-    #         break
-
-    
-    #     print("Current Completed Job: ", complete)
-    #     print(current_cluster_cpu())
-
-    #     count += 1
-
     while True:
         complete = 0
         for key, task in node_task_dict.items():
@@ -524,11 +485,12 @@ def default_scheduler_run_tasks(x_0):
             arr = line_arr.split()
             finish_task = arr[1].split(b'/')[0]
             finish_task = int(finish_task)
-            if finish_task >= 1:
+            if finish_task == task:
                 complete+=1
         if complete == len(workload):
             break
-
+    
+    print('workload len: ', len(workload))
     print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
     cluster_cpu = current_cluster_cpu()
@@ -699,7 +661,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 #--------------------------------------------------------------------------
                 
             server_node.reset()
-    return execute_time, cluster_cpu
+    return total_time, cluster_cpu
 
 if __name__ == "__main__":
     
@@ -731,7 +693,7 @@ if __name__ == "__main__":
 
         print("Start Distributed Scheduler")
         server_node, HOSTNAME = node_init()
-        execute_time, cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        total_time, cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
         server_node.stop()
         subprocess.check_output(["kubectl","delete", "jobs", "--all"])
         subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
@@ -743,7 +705,7 @@ if __name__ == "__main__":
         myfile.write(str(i) + '\n')
         myfile.write(str(base_time) + '\n')
         myfile.write(json.dumps(cluster_cpu_default)+ '\n')
-        myfile.write(str(execute_time) + '\n')
+        myfile.write(str(total_time) + '\n')
         myfile.write(json.dumps(cluster_cpu)+ '\n')
         myfile.close()
 
