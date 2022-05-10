@@ -448,34 +448,35 @@ def run_tasks(assignment,ip_node_dict):
 
     #     count += 1
 
-    # while True:
-    #     complete = 0
-    #     for key, task in node_task_dict.items():
-    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
-    #         line_arr = lines.split(b'\n')[1]
-    #         arr = line_arr.split()
-    #         finish_task = arr[1].split(b'/')[0]
-    #         finish_task = int(finish_task)
-    #         if finish_task >= 1:
-    #             complete+=1
-    #     if complete == len(assignment):
-    #         break
-    # print("All node finish first task exec")
-    # execute_time = time.time() - start_execute_time
-    # print(current_cluster_cpu())
-    # print('wait to get cluster status')
-    # time.sleep(15)
-
-
-    print('Wait for all tasks to start burning')
-    time.sleep(40)
-    print('All task start burning')
-    print(current_cluster_cpu())
-    print('Get current cluster cpu')
-    time.sleep(10)
+    while True:
+        complete = 0
+        for key, task in node_task_dict.items():
+            lines = subprocess.check_output(["kubectl","get", "jobs", key])
+            line_arr = lines.split(b'\n')[1]
+            arr = line_arr.split()
+            finish_task = arr[1].split(b'/')[0]
+            finish_task = int(finish_task)
+            if finish_task == task:
+                complete+=1
+        if complete == len(assignment):
+            break
+    print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
+    cluster_cpu = current_cluster_cpu()
+    print(cluster_cpu)
+    print('wait to get cluster status')
+    time.sleep(15)
 
-    return execute_time
+
+    # print('Wait for all tasks to start burning')
+    # time.sleep(40)
+    # print('All task start burning')
+    # print(current_cluster_cpu())
+    # print('Get current cluster cpu')
+    # time.sleep(10)
+    # execute_time = time.time() - start_execute_time
+
+    return execute_time, cluster_cpu
 
 def default_scheduler_run_tasks(x_0):
     workload = np.transpose(x_0)[0]
@@ -515,34 +516,35 @@ def default_scheduler_run_tasks(x_0):
 
     #     count += 1
 
-    # while True:
-    #     complete = 0
-    #     for key, task in node_task_dict.items():
-    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
-    #         line_arr = lines.split(b'\n')[1]
-    #         arr = line_arr.split()
-    #         finish_task = arr[1].split(b'/')[0]
-    #         finish_task = int(finish_task)
-    #         if finish_task >= 1:
-    #             complete+=1
-    #     if complete == len(workload):
-    #         break
+    while True:
+        complete = 0
+        for key, task in node_task_dict.items():
+            lines = subprocess.check_output(["kubectl","get", "jobs", key])
+            line_arr = lines.split(b'\n')[1]
+            arr = line_arr.split()
+            finish_task = arr[1].split(b'/')[0]
+            finish_task = int(finish_task)
+            if finish_task >= 1:
+                complete+=1
+        if complete == len(workload):
+            break
 
-    # print("All node finish first task exec")
-    # execute_time = time.time() - start_execute_time
-    # print(current_cluster_cpu())
-    # print('wait to get cluster status')
-    # time.sleep(15)
-
-    print('Wait for all tasks to start burning')
-    time.sleep(40)
-    print('All task start burning')
-    print(current_cluster_cpu())
-    print('Get current cluster cpu')
-    time.sleep(10)
+    print("All node finish first task exec")
     execute_time = time.time() - start_execute_time
+    cluster_cpu = current_cluster_cpu()
+    print(cluster_cpu)
+    print('wait to get cluster status')
+    time.sleep(15)
+
+    # print('Wait for all tasks to start burning')
+    # time.sleep(40)
+    # print('All task start burning')
+    # print(current_cluster_cpu())
+    # print('Get current cluster cpu')
+    # time.sleep(10)
+    # execute_time = time.time() - start_execute_time
     
-    return execute_time
+    return execute_time, cluster_cpu
 
 def current_cluster_cpu():
     lines = subprocess.check_output(["kubectl","describe","nodes"]).decode("utf-8").split('\n')
@@ -623,6 +625,8 @@ def log(server_node, num_clients, i, consensus_time, iteration, diameter):
     myfile.close()
 
 def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=None):
+    execute_time = None
+    cluster_cpu = None
     for num_clients in nodes:
         create_clients(num_clients)
         # Trials
@@ -653,7 +657,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment,job_schedule_time = job_scheduler(x_0,capacity,full_cap,type='greedy')
-                execute_time = run_tasks(assignment,ip_node_dict)
+                execute_time, cluster_cpu = run_tasks(assignment,ip_node_dict)
                 print("Consensus Time: ", consensus_time, "Job Scheduling Time: ", job_schedule_time, "Job Execution Time: ", execute_time)
                 total_time = consensus_time + job_schedule_time + execute_time
                 print('Total Time: ', total_time)
@@ -695,6 +699,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 #--------------------------------------------------------------------------
                 
             server_node.reset()
+    return execute_time, cluster_cpu
 
 if __name__ == "__main__":
     
@@ -710,21 +715,39 @@ if __name__ == "__main__":
     if job_scheduling:
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
-    x_0 = gen_workload(100, 1000, 9, job_scheduling)
+    
+    for i in range(10):
+        x_0 = gen_workload(100, 1000, 9, job_scheduling)
 
-    # create clients for default scheduler
-    create_clients(9)
-    print("Start Default Scheduler")
-    base_time = default_scheduler_run_tasks(x_0)
-    print("Base Time: ", base_time)
-    subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-    print("waiting for all jobs and deployment to be deleted")
-    time.sleep(40)
+        # create clients for default scheduler
+        create_clients(9)
+        print("Start Default Scheduler")
+        base_time, cluster_cpu_default = default_scheduler_run_tasks(x_0)
+        print("Base Time: ", base_time)
+        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+        print("waiting for all jobs and deployment to be deleted")
+        time.sleep(40)
 
-    print("Start Distributed Scheduler")
-    server_node, HOSTNAME = node_init()
-    run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        print("Start Distributed Scheduler")
+        server_node, HOSTNAME = node_init()
+        execute_time, cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+        print("waiting for all jobs and deployment to be deleted")
+        time.sleep(40)
+
+
+        myfile = open('../log_compare_time.txt', 'a')
+        myfile.write(str(i) + '\n')
+        myfile.write(str(base_time) + '\n')
+        myfile.write(json.dumps(cluster_cpu_default)+ '\n')
+        myfile.write(str(execute_time) + '\n')
+        myfile.write(json.dumps(cluster_cpu)+ '\n')
+        myfile.close()
+
+
+        
 
 
 
