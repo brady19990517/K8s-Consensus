@@ -681,7 +681,7 @@ if __name__ == "__main__":
         assert(trials == 1)
     
     # for i in range(10):
-    #     x_0 = gen_workload(100, 1000, 9, job_scheduling)
+    x_0 = gen_workload(100, 1000, 9, job_scheduling)
 
     #     # create clients for default scheduler
     #     create_clients(9)
