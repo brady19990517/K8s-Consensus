@@ -96,7 +96,9 @@ def start_client(node,cond,run_lock):
     print("[Client] start consensus")
     while i < max_iter and can_terminate == 0 and not node.new_trial:
         
+
         #---------- Logging ----------
+        single_iteration_time_start = time.time()
         net_stat = psutil.net_io_counters()
         net_in_1 = net_stat.bytes_recv
         net_out_1 = net_stat.bytes_sent
@@ -320,7 +322,9 @@ def start_client(node,cond,run_lock):
         except Exception as e:
             if node.new_trial:
                 print("Exception Occured: ", e)
-
+        
+        single_iteration_time = time.time() - single_iteration_time_start
+        print("Current Iteration: ", i, "Time: ", single_iteration_time)
     return local_comp_time_list, msg_ex_xy_time_list, msg_ex_z_time_list, local_comp_cpu_list, local_comp_mem_list, local_comp_disk_list, local_comp_net_in_list, local_comp_net_out_list, msg_ex_cpu_list, msg_ex_mem_list, msg_ex_disk_list, msg_ex_net_in_list, msg_ex_net_out_list
 
 if __name__ == "__main__":

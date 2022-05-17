@@ -668,54 +668,55 @@ if __name__ == "__main__":
     
     #---------- Setting Parameters ----------
     random.seed(1234)
-    # trials = 10
-    trials = 1
+    trials = 5
+    # trials = 1
     # nodes = [20,30,40,50,60,70,80,90,100]
-    nodes = [9]
-    job_scheduling = True
+    # nodes = [9]
+    nodes = [20, 70]
+    job_scheduling = False
     
     #---------- Start Running Trials ----------
     if job_scheduling:
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
     
-    for i in range(10):
-        x_0 = gen_workload(100, 1000, 9, job_scheduling)
+    # for i in range(10):
+    #     x_0 = gen_workload(100, 1000, 9, job_scheduling)
 
-        # create clients for default scheduler
-        create_clients(9)
-        print("Start Default Scheduler")
-        base_time, cluster_cpu_default = default_scheduler_run_tasks(x_0)
-        print("Base Time: ", base_time)
-        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-        print("waiting for all jobs and deployment to be deleted")
-        time.sleep(40)
+    #     # create clients for default scheduler
+    #     create_clients(9)
+    #     print("Start Default Scheduler")
+    #     base_time, cluster_cpu_default = default_scheduler_run_tasks(x_0)
+    #     print("Base Time: ", base_time)
+    #     subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+    #     subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+    #     print("waiting for all jobs and deployment to be deleted")
+    #     time.sleep(40)
 
-        print("Start Distributed Scheduler")
-        server_node, HOSTNAME = node_init()
-        total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
-        server_node.stop()
-        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-        print("waiting for all jobs and deployment to be deleted")
-        time.sleep(40)
+    print("Start Distributed Scheduler")
+    server_node, HOSTNAME = node_init()
+    total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+    server_node.stop()
+    subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+    subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+    print("waiting for all jobs and deployment to be deleted")
+    time.sleep(40)
 
-        default_cpu = {'caelum-103': 16.667, 'caelum-201': 8.333, 'caelum-214': 8.333, 'caelum-401': 8.333, 'caelum-402': 8.333, 'caelum-601': 16.667, 'caelum-602':16.667, 'caelum-603': 16.667, 'caelum-604': 16.667}
-        for key, val in default_cpu.items():
-            cluster_cpu_default[key] = cluster_cpu_default[key] - val
-            cluster_cpu[key] = cluster_cpu[key] - val
+        # default_cpu = {'caelum-103': 16.667, 'caelum-201': 8.333, 'caelum-214': 8.333, 'caelum-401': 8.333, 'caelum-402': 8.333, 'caelum-601': 16.667, 'caelum-602':16.667, 'caelum-603': 16.667, 'caelum-604': 16.667}
+        # for key, val in default_cpu.items():
+        #     cluster_cpu_default[key] = cluster_cpu_default[key] - val
+        #     cluster_cpu[key] = cluster_cpu[key] - val
 
-        myfile = open('../log_compare_cpu.txt', 'a')
-        myfile.write(str(i) + '\n')
-        # myfile.write(str(base_time) + '\n')
-        myfile.write(json.dumps(cluster_cpu_default)+ '\n')
-        # myfile.write(str(total_time) + '\n')
-        # myfile.write(str(consensus_time) + '\n')
-        # myfile.write(str(job_schedule_time) + '\n')
-        # myfile.write(str(execute_time) + '\n')
-        myfile.write(json.dumps(cluster_cpu)+ '\n')
-        myfile.close()
+        # myfile = open('../log_compare_cpu.txt', 'a')
+        # myfile.write(str(i) + '\n')
+        # # myfile.write(str(base_time) + '\n')
+        # myfile.write(json.dumps(cluster_cpu_default)+ '\n')
+        # # myfile.write(str(total_time) + '\n')
+        # # myfile.write(str(consensus_time) + '\n')
+        # # myfile.write(str(job_schedule_time) + '\n')
+        # # myfile.write(str(execute_time) + '\n')
+        # myfile.write(json.dumps(cluster_cpu)+ '\n')
+        # myfile.close()
 
 
         
