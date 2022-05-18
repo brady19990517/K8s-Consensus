@@ -673,7 +673,7 @@ if __name__ == "__main__":
     
     #---------- Setting Parameters ----------
     random.seed(1234)
-    trials = 3
+    trials = 1
     # trials = 1
     # nodes = [20,30,40,50,60,70,80,90,100]
     # nodes = [9]
