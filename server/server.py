@@ -603,7 +603,10 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
             else:
                 x_0 = gen_workload(100, 1000, num_clients, job_scheduling)
             print('workload: ', np.transpose(x_0)[0])
-            flag, consensus_time, iteration, diameter, capacity, ip_node_dict, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+            if job_scheduling:
+                flag, consensus_time, iteration, diameter, capacity, ip_node_dict, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
+            else:
+                flag, consensus_time, iteration, diameter, capacity, full_cap = start_server(num_clients,server_node,HOSTNAME,x_0,job_scheduling)
             if flag == 1:
                 log(server_node, num_clients, i, consensus_time, iteration, diameter)
             print("Server Finish logging")
