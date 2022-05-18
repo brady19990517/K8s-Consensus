@@ -151,8 +151,10 @@ def start_server(num_clients, server_node, HOSTNAME, x_0,job_scheduling=False,ma
     for host in server_node.client_hostname_list:
         optimal_cap[host] = capacity[host]*server_node.z_storage[cur_iter][host]
 
-
-    return 1, consensus_time, cur_iter, diameter, optimal_cap, ip_node_dict, capacity
+    if job_scheduling:
+        return 1, consensus_time, cur_iter, diameter, optimal_cap, ip_node_dict, capacity
+    else:
+        return 1, consensus_time, cur_iter, diameter, optimal_cap, capacity
 
 def get_capacity():
     lines = subprocess.check_output(["kubectl","describe","nodes"]).decode("utf-8").split('\n')
@@ -668,7 +670,7 @@ if __name__ == "__main__":
     
     #---------- Setting Parameters ----------
     random.seed(1234)
-    trials = 5
+    trials = 3
     # trials = 1
     # nodes = [20,30,40,50,60,70,80,90,100]
     # nodes = [9]
