@@ -460,25 +460,27 @@ def run_tasks(assignment,ip_node_dict):
 
     return execute_time, cluster_cpu
 
-def default_scheduler_run_tasks(x_0):
+def default_scheduler_run_tasks(task_cpu):
+    print('task_cpu: ', task_cpu)
     start_execute_time = time.time()
-    workload = np.transpose(x_0)[0]
-    task_arr = []
-    total_task = 0
-    for job in workload:
-        task_arr.append(job/100)
-        total_task+=job/100
+    # workload = np.transpose(x_0)[0]
+    # task_arr = []
+    # total_task = 0
+    # for job in workload:
+    #     task_arr.append(job/100)
+    #     total_task+=job/100
 
-    total_task = int(total_task)
+    # total_task = int(total_task)
     # node_task_dict = {}
     # for i,tasks in enumerate(task_arr):
-    for i in range(total_task):
+    # for i in range(total_task):
+    for i, task in enumerate(task_cpu):
         taskstr = "default-scheduler-task-" + str(i)
         # node_task_dict[jobstr] = tasks
         with open('../deployments/job/single-task-default-scheduler-job.yaml', 'r') as file:
             job_tmpl = file.read()
         # filedata = job_tmpl.replace("$NUM_TASKS",str(tasks)).replace('$JOB_NAME',jobstr)
-        filedata = job_tmpl.replace('$JOB_NAME',taskstr).replace('$CPU','100m')
+        filedata = job_tmpl.replace('$JOB_NAME',taskstr).replace('$CPU', str(task)+'m')
         filename = "../deployments/job/"+taskstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
@@ -683,7 +685,7 @@ if __name__ == "__main__":
     # nodes = [20,30,40,50,60,70,80,90,100]
     # nodes = [9]
     nodes = [20, 70]
-    job_scheduling = False
+    job_scheduling = True
     
     #---------- Start Running Trials ----------
     if job_scheduling:
@@ -691,12 +693,13 @@ if __name__ == "__main__":
         assert(trials == 1)
     
     for i in range(10):
-        x_0 = gen_workload(100, 1000, 9, job_scheduling, real_workload=False)
-
+        x_0, task_cpu = gen_workload(100, 1000, 9, job_scheduling, real_workload=False)
+        print('workload: ', x_0)
         # create clients for default scheduler
         create_clients(9)
+        time.sleep(20)
         print("Start Default Scheduler")
-        base_time, cluster_cpu_default = default_scheduler_run_tasks(x_0)
+        base_time, cluster_cpu_default = default_scheduler_run_tasks(task_cpu)
         print("Base Time: ", base_time)
         subprocess.check_output(["kubectl","delete", "jobs", "--all"])
         subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
