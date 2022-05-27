@@ -25,7 +25,7 @@ def gen_workload(min_w:int, max_w:int, len:int, job_scheduling:bool, real_worklo
         for p in r:
             workload.append((cpu_sum * p)*1000)
 
-        return workload, task_cpu
+        return np.resize(workload, [len(workload),1]), task_cpu
     else:
         if job_scheduling:
             # 1 task need 100 
@@ -33,8 +33,6 @@ def gen_workload(min_w:int, max_w:int, len:int, job_scheduling:bool, real_worklo
         else:
             workload = np.random.randint(min_w,max_w+1, size=[len,1])
         total_task = 0
-        for w in workload:
+        for w in np.transpose(workload)[0]:
             total_task += w / 100
-        print(total_task)
-        print([1]*total_task)
         return workload, [100]*total_task
