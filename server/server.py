@@ -367,7 +367,69 @@ def job_scheduler_greedy(workload, capacity, full_cap):
 
 
 def job_scheduler_greedy_real_workload(workload, capacity, full_cap, task_cpu):
-    assignment = None
+    assignment = {}
+    for c in capacity.keys():
+        assignment[c] = []
+    #order of client
+    # workload = np.transpose(workload)[0]
+    cap_order = [k for k, v in sorted(capacity.items(), key=lambda item: item[1], reverse=True)]
+
+    #order of job
+    # job_order = np.argsort(workload)[::-1]
+
+    remain_cap = copy.deepcopy(full_cap)
+
+    total_tasks = len(task_cpu)
+
+    
+    print("total_tasks: ", total_tasks)
+
+    # job_idx = 0
+    task_idx = 0
+    assigned_tasks = 0
+    for c in cap_order:
+        cap = capacity[c]
+        while cap > 0:
+            cap -= task_cpu[task_idx]
+            if cap < 0:
+                break
+            else:
+                remain_cap[c] -= task_cpu[task_idx]
+                print("Assiging Task ",task_idx,"to Client ",c,"Capcaity ",cap,"/",capacity[c])
+                assignment[c].append((0, task_idx))
+                task_idx+=1
+                assigned_tasks+=1
+                if assigned_tasks == total_tasks:
+                    print("All tasks assigned")
+                    break
+        if assigned_tasks == total_tasks:
+            print("All tasks assigned")
+            break
+    
+    if assigned_tasks == total_tasks:
+        print("All tasks assigned")
+        return assignment
+    print("Extra space needed... Schedule to top capacity node again")
+    #Not all task are assinged because each client remaining space are unused
+    #Assgin remaining task to top clients
+    for c in cap_order:
+        cap = remain_cap[c]
+        while cap > 0:
+            cap -= task_cpu[task_idx]
+            if cap < 0:
+                break
+            else:
+                remain_cap[c] -= task_cpu[task_idx]
+                print("Assiging Task ",task_idx,"to Client ",c,"Remaining capcaity ",remain_cap[c],"/",full_cap[c])
+                assignment[c].append((0, task_idx))
+                task_idx+=1
+                assigned_tasks+=1
+                if assigned_tasks == total_tasks:
+                    print("All tasks assigned")
+                    break
+        if assigned_tasks == total_tasks:
+            print("All tasks assigned")
+            break
     return assignment
 
 
@@ -384,44 +446,45 @@ def job_scheduler(workload, capacity, full_cap, task_cpu,real_workload, type):
     job_schedule_time = time.time() - start_job_schedule_time
     return assignment, job_schedule_time
     
-def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
-    #Start Job assinging
-    print(assignment)
-    workload = np.transpose(x_0).tolist()[0]
-    print("Start running jobs: ", list(assignment.keys()))
-    created_jobs = []
-    for id in list(assignment.keys()):
-        if assignment[id] is None:
-            continue
-        print(id)
-        req_cpu = str(workload[id]) + 'm'
-        jobstr = "job-pod-"+str(id)
-        created_jobs.append(jobstr)
-        with open('../deployments/job/job-pod.yaml', 'r') as file:
-            job_tmpl = file.read()
-        filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",str(random.randint(15, 180)))
-        filename = "../deployments/job/"+jobstr+".yaml"
-        with open(filename, 'w') as file:
-            file.write(filedata)
-        subprocess.check_output(["kubectl","apply", "-f", filename])
+# def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
+#     #Start Job assinging
+#     print(assignment)
+#     workload = np.transpose(x_0).tolist()[0]
+#     print("Start running jobs: ", list(assignment.keys()))
+#     created_jobs = []
+#     for id in list(assignment.keys()):
+#         if assignment[id] is None:
+#             continue
+#         print(id)
+#         req_cpu = str(workload[id]) + 'm'
+#         jobstr = "job-pod-"+str(id)
+#         created_jobs.append(jobstr)
+#         with open('../deployments/job/job-pod.yaml', 'r') as file:
+#             job_tmpl = file.read()
+#         filedata = job_tmpl.replace('$JOBID',jobstr).replace("$NUM_CPU",req_cpu).replace("$NODE",ip_node_dict[assignment[id]]).replace("$SLEEP_TIME",str(random.randint(15, 180)))
+#         filename = "../deployments/job/"+jobstr+".yaml"
+#         with open(filename, 'w') as file:
+#             file.write(filedata)
+#         subprocess.check_output(["kubectl","apply", "-f", filename])
 
-    # Rerun consensus algorithm if two jobs completed
-    prev_completed_jobs = completed_jobs
-    completed_jobs = 0
-    # Stop looping when at least one job complete
-    while prev_completed_jobs >= completed_jobs:
-        out = subprocess.check_output(["kubectl","get", "jobs", "--field-selector", "status.successful=1"])
-        print(out)
-        completed_jobs = out.count(b'\n')-1
-        time.sleep(3)
+#     # Rerun consensus algorithm if two jobs completed
+#     prev_completed_jobs = completed_jobs
+#     completed_jobs = 0
+#     # Stop looping when at least one job complete
+#     while prev_completed_jobs >= completed_jobs:
+#         out = subprocess.check_output(["kubectl","get", "jobs", "--field-selector", "status.successful=1"])
+#         print(out)
+#         completed_jobs = out.count(b'\n')-1
+#         time.sleep(3)
         
-    print("At least one job completed")
+#     print("At least one job completed")
 
-    return completed_jobs
+#     return completed_jobs
 
         # kubectl wait --for=condition=complete --timeout=30s job/myjob
 
 def run_tasks(assignment,ip_node_dict):
+    print('assignment: ', assignment)
     start_execute_time = time.time()
     node_task_dict = {}
     for ip in list(assignment.keys()):
@@ -439,6 +502,61 @@ def run_tasks(assignment,ip_node_dict):
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
+
+    # while True:
+    #     complete = 0
+    #     for key, task in node_task_dict.items():
+    #         lines = subprocess.check_output(["kubectl","get", "jobs", key])
+    #         line_arr = lines.split(b'\n')[1]
+    #         arr = line_arr.split()
+    #         finish_task = arr[1].split(b'/')[0]
+    #         finish_task = int(finish_task)
+    #         if finish_task == task:
+    #             complete+=1
+    #     if complete == len(assignment):
+    #         break
+    # print("All node finish first task exec")
+    # execute_time = time.time() - start_execute_time
+    # cluster_cpu = current_cluster_cpu()
+    # print(cluster_cpu)
+    # print('wait to get cluster status')
+    # time.sleep(15)
+
+
+    print('Wait for all tasks to start burning')
+    time.sleep(40)
+    print('All task start burning')
+    cluster_cpu = current_cluster_cpu()
+    print(cluster_cpu)
+    print('Get current cluster cpu')
+    time.sleep(10)
+    execute_time = time.time() - start_execute_time
+
+    return execute_time, cluster_cpu
+
+
+def run_tasks_real_workload(assignment,ip_node_dict, task_cpu):
+    print('task assignment: ', assignment)
+    start_execute_time = time.time()
+    node_task_dict = {}
+    for ip in list(assignment.keys()):
+        client = ip_node_dict[ip]
+        print("Executing tasks on node: ", client)
+        num_task = len(assignment[ip])
+        node_task_dict[client] = num_task
+        if num_task == 0:
+            continue
+        for task_id in assignment[ip]:
+            task_str = "task-pod-"+task_id
+
+            with open('../deployments/job/single-task-job-pod.yaml', 'r') as file:
+                job_tmpl = file.read()
+            
+            filedata = job_tmpl.replace('$NODE',client).replace('$CPU', str(task_cpu[task_id])+'m')
+            filename = "../deployments/job/"+task_str+".yaml"
+            with open(filename, 'w') as file:
+                file.write(filedata)
+            subprocess.check_output(["kubectl","apply", "-f", filename])
 
     # while True:
     #     complete = 0
@@ -643,7 +761,10 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
                 assignment,job_schedule_time = job_scheduler(x_0,capacity,full_cap,task_cpu,real_workload,type='greedy')
-                execute_time, cluster_cpu = run_tasks(assignment,ip_node_dict)
+                if real_workload == False:
+                    execute_time, cluster_cpu = run_tasks(assignment,ip_node_dict)
+                else:
+                    execute_time, cluster_cpu = run_tasks_real_workload(assignment,ip_node_dict,task_cpu)
                 print("Consensus Time: ", consensus_time, "Job Scheduling Time: ", job_schedule_time, "Job Execution Time: ", execute_time)
                 total_time = consensus_time + job_schedule_time + execute_time
                 print('Total Time: ', total_time)
