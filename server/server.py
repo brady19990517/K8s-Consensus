@@ -551,8 +551,8 @@ def run_tasks_real_workload(assignment,ip_node_dict, task_cpu):
 
             with open('../deployments/job/single-task-job-pod.yaml', 'r') as file:
                 job_tmpl = file.read()
-            
-            filedata = job_tmpl.replace('$NODE',client).replace('$CPU', str(task_cpu[task_id])+'m')
+
+            filedata = job_tmpl.replace('$NODE',client).replace('$CPU', str(task_cpu[task_id])+'m').replace('$TASK_NAME',task_str)
             filename = "../deployments/job/"+task_str+".yaml"
             with open(filename, 'w') as file:
                 file.write(filedata)
