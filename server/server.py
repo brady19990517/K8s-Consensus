@@ -469,6 +469,7 @@ def default_scheduler_run_tasks(x_0):
         task_arr.append(job/100)
         total_task+=job/100
 
+    total_task = int(total_task)
     # node_task_dict = {}
     # for i,tasks in enumerate(task_arr):
     for i in range(total_task):
