@@ -547,7 +547,7 @@ def run_tasks_real_workload(assignment,ip_node_dict, task_cpu):
         if num_task == 0:
             continue
         for job_id, task_id in assignment[ip]:
-            task_str = "task-pod-"+str(task_id)
+            task_str = "distributed-task-pod-"+str(task_id)
 
             with open('../deployments/job/single-task-job-pod.yaml', 'r') as file:
                 job_tmpl = file.read()
