@@ -35,4 +35,4 @@ def gen_workload(min_w:int, max_w:int, len:int, job_scheduling:bool, real_worklo
         total_task = 0
         for w in np.transpose(workload)[0]:
             total_task += w / 100
-        return workload, [100]*total_task
+        return workload, [100]*int(total_task)
