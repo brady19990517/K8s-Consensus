@@ -683,8 +683,8 @@ if __name__ == "__main__":
     trials = 1
     # trials = 1
     # nodes = [20,30,40,50,60,70,80,90,100]
-    # nodes = [9]
-    nodes = [20, 70]
+    nodes = [9]
+    # nodes = [20, 70]
     job_scheduling = True
     
     #---------- Start Running Trials ----------
