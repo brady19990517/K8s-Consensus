@@ -365,17 +365,28 @@ def job_scheduler_greedy(workload, capacity, full_cap):
             break
     return assignment
 
-def job_scheduler(workload, capacity, full_cap, type):
+
+def job_scheduler_greedy_real_workload(workload, capacity, full_cap, task_cpu):
+    assignment = None
+    return assignment
+
+
+def job_scheduler(workload, capacity, full_cap, task_cpu,real_workload, type):
     start_job_schedule_time = time.time()
+    assignment = None
     if type == 'mk':
         assignment = job_scheduler_mk(workload, capacity, full_cap)
     elif type == 'greedy':
-        assignment = job_scheduler_greedy(workload, capacity, full_cap)
+        if real_workload:
+            assignment = job_scheduler_greedy_real_workload(workload, capacity, full_cap, task_cpu)
+        else:
+            assignment = job_scheduler_greedy(workload, capacity, full_cap)
     job_schedule_time = time.time() - start_job_schedule_time
     return assignment, job_schedule_time
     
 def run_jobs(assignment,x_0,ip_node_dict,completed_jobs):
     #Start Job assinging
+    print(assignment)
     workload = np.transpose(x_0).tolist()[0]
     print("Start running jobs: ", list(assignment.keys()))
     created_jobs = []
@@ -596,7 +607,7 @@ def log(server_node, num_clients, i, consensus_time, iteration, diameter):
     myfile.write(json.dumps(server_node.msg_ex_net_out_list)+ '\n')
     myfile.close()
 
-def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=None):
+def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=None,task_cpu=None,real_workload=False):
     execute_time = None
     cluster_cpu = None
     for num_clients in nodes:
@@ -631,7 +642,7 @@ def run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling=False,x_0=Non
                 # All task of the same job should be put on one node (Multiple_Knapsack) mk
                 # Tasks of a node can be put on different nodes (Greedy) greedy
                 #TODO: Currently assuming one task per job
-                assignment,job_schedule_time = job_scheduler(x_0,capacity,full_cap,type='greedy')
+                assignment,job_schedule_time = job_scheduler(x_0,capacity,full_cap,task_cpu,real_workload,type='greedy')
                 execute_time, cluster_cpu = run_tasks(assignment,ip_node_dict)
                 print("Consensus Time: ", consensus_time, "Job Scheduling Time: ", job_schedule_time, "Job Execution Time: ", execute_time)
                 total_time = consensus_time + job_schedule_time + execute_time
@@ -686,18 +697,18 @@ if __name__ == "__main__":
     nodes = [9]
     # nodes = [20, 70]
     job_scheduling = True
-    
+    real_workload = True
     #---------- Start Running Trials ----------
     if job_scheduling:
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
     
     for i in range(10):
-        x_0, task_cpu = gen_workload(100, 1000, 9, job_scheduling, real_workload=False)
+        x_0, task_cpu = gen_workload(100, 1000, 9, job_scheduling, real_workload)
         print('workload: ', x_0)
         # create clients for default scheduler
         create_clients(9)
-        time.sleep(20)
+        time.sleep(30)
         print("Start Default Scheduler")
         base_time, cluster_cpu_default = default_scheduler_run_tasks(task_cpu)
         print("Base Time: ", base_time)
@@ -708,7 +719,7 @@ if __name__ == "__main__":
 
         print("Start Distributed Scheduler")
         server_node, HOSTNAME = node_init()
-        total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0,task_cpu,real_workload)
         server_node.stop()
         subprocess.check_output(["kubectl","delete", "jobs", "--all"])
         subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
