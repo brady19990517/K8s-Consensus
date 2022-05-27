@@ -25,7 +25,7 @@ def gen_workload(min_w:int, max_w:int, len:int, job_scheduling:bool, real_worklo
         for p in r:
             workload.append((cpu_sum * p)*1000)
 
-        return np.resize(workload, [len(workload),1]), task_cpu
+        return np.resize(workload, (len(workload),1)), task_cpu
     else:
         if job_scheduling:
             # 1 task need 100 
