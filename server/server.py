@@ -464,17 +464,21 @@ def default_scheduler_run_tasks(x_0):
     start_execute_time = time.time()
     workload = np.transpose(x_0)[0]
     task_arr = []
+    total_task = 0
     for job in workload:
         task_arr.append(job/100)
-    print('elasped time: ', time.time() - start_execute_time)
-    node_task_dict = {}
-    for i,tasks in enumerate(task_arr):
-        jobstr = "default-scheduler-job-" + str(i)
-        node_task_dict[jobstr] = tasks
-        with open('../deployments/job/default-scheduler-job.yaml', 'r') as file:
+        total_task+=job/100
+
+    # node_task_dict = {}
+    # for i,tasks in enumerate(task_arr):
+    for i in range(total_task):
+        taskstr = "default-scheduler-task-" + str(i)
+        # node_task_dict[jobstr] = tasks
+        with open('../deployments/job/single-task-default-scheduler-job.yaml', 'r') as file:
             job_tmpl = file.read()
-        filedata = job_tmpl.replace("$NUM_TASKS",str(tasks)).replace('$JOB_NAME',jobstr)
-        filename = "../deployments/job/"+jobstr+".yaml"
+        # filedata = job_tmpl.replace("$NUM_TASKS",str(tasks)).replace('$JOB_NAME',jobstr)
+        filedata = job_tmpl.replace('$JOB_NAME',taskstr).replace('$CPU','100m')
+        filename = "../deployments/job/"+taskstr+".yaml"
         with open(filename, 'w') as file:
             file.write(filedata)
         subprocess.check_output(["kubectl","apply", "-f", filename])
@@ -685,43 +689,43 @@ if __name__ == "__main__":
         assert(len(nodes)==1 and nodes[0]==9)
         assert(trials == 1)
     
-    # for i in range(10):
-    x_0 = gen_workload(100, 1000, 9, job_scheduling)
+    for i in range(10):
+        x_0 = gen_workload(100, 1000, 9, job_scheduling, real_workload=False)
 
-    #     # create clients for default scheduler
-    #     create_clients(9)
-    #     print("Start Default Scheduler")
-    #     base_time, cluster_cpu_default = default_scheduler_run_tasks(x_0)
-    #     print("Base Time: ", base_time)
-    #     subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    #     subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-    #     print("waiting for all jobs and deployment to be deleted")
-    #     time.sleep(40)
+        # create clients for default scheduler
+        create_clients(9)
+        print("Start Default Scheduler")
+        base_time, cluster_cpu_default = default_scheduler_run_tasks(x_0)
+        print("Base Time: ", base_time)
+        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+        print("waiting for all jobs and deployment to be deleted")
+        time.sleep(40)
 
-    print("Start Distributed Scheduler")
-    server_node, HOSTNAME = node_init()
-    total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
-    server_node.stop()
-    subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-    subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-    print("waiting for all jobs and deployment to be deleted")
-    time.sleep(40)
+        print("Start Distributed Scheduler")
+        server_node, HOSTNAME = node_init()
+        total_time,consensus_time,job_schedule_time,execute_time,cluster_cpu = run_consensus(server_node,HOSTNAME,nodes,trials,job_scheduling,x_0)
+        server_node.stop()
+        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+        print("waiting for all jobs and deployment to be deleted")
+        time.sleep(40)
 
-        # default_cpu = {'caelum-103': 16.667, 'caelum-201': 8.333, 'caelum-214': 8.333, 'caelum-401': 8.333, 'caelum-402': 8.333, 'caelum-601': 16.667, 'caelum-602':16.667, 'caelum-603': 16.667, 'caelum-604': 16.667}
-        # for key, val in default_cpu.items():
-        #     cluster_cpu_default[key] = cluster_cpu_default[key] - val
-        #     cluster_cpu[key] = cluster_cpu[key] - val
+        default_cpu = {'caelum-103': 16.667, 'caelum-201': 8.333, 'caelum-214': 8.333, 'caelum-401': 8.333, 'caelum-402': 8.333, 'caelum-601': 16.667, 'caelum-602':16.667, 'caelum-603': 16.667, 'caelum-604': 16.667}
+        for key, val in default_cpu.items():
+            cluster_cpu_default[key] = cluster_cpu_default[key] - val
+            cluster_cpu[key] = cluster_cpu[key] - val
 
-        # myfile = open('../log_compare_cpu.txt', 'a')
-        # myfile.write(str(i) + '\n')
-        # # myfile.write(str(base_time) + '\n')
-        # myfile.write(json.dumps(cluster_cpu_default)+ '\n')
-        # # myfile.write(str(total_time) + '\n')
-        # # myfile.write(str(consensus_time) + '\n')
-        # # myfile.write(str(job_schedule_time) + '\n')
-        # # myfile.write(str(execute_time) + '\n')
-        # myfile.write(json.dumps(cluster_cpu)+ '\n')
-        # myfile.close()
+        myfile = open('../log_compare_cpu.txt', 'a')
+        myfile.write(str(i) + '\n')
+        # myfile.write(str(base_time) + '\n')
+        myfile.write(json.dumps(cluster_cpu_default)+ '\n')
+        # myfile.write(str(total_time) + '\n')
+        # myfile.write(str(consensus_time) + '\n')
+        # myfile.write(str(job_schedule_time) + '\n')
+        # myfile.write(str(execute_time) + '\n')
+        myfile.write(json.dumps(cluster_cpu)+ '\n')
+        myfile.close()
 
 
         
