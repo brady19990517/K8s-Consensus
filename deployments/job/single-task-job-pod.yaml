@@ -1,0 +1,23 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: $NODE
+spec:
+  template:
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        # command:
+        # - sleep
+        # - "30"
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo hello; sleep 5;done"]
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: $CPU
+      restartPolicy: Never
+      nodeSelector:
+        name: $NODE
+  backoffLimit: 4
