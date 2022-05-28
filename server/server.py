@@ -565,7 +565,7 @@ def run_tasks_real_workload(assignment,ip_node_dict, task_cpu):
         lines = subprocess.check_output(["kubectl","get", "jobs"])
         line_arr = lines.split(b'\n')
         for i, l in enumerate(line_arr):
-            if i==0:
+            if i==0 or len(l)==0:
                 continue
             arr = l.split()
             complete += int(arr[1].split(b'/')[0])
@@ -634,7 +634,7 @@ def default_scheduler_run_tasks(task_cpu):
         lines = subprocess.check_output(["kubectl","get", "jobs"])
         line_arr = lines.split(b'\n')
         for i,l in enumerate(line_arr):
-            if i==0:
+            if i==0 or len(l)==0:
                 continue
             arr = l.split()
             complete += int(arr[1].split(b'/')[0])
