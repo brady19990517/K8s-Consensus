@@ -853,18 +853,7 @@ if __name__ == "__main__":
     for i in range(10):
         x_0, task_cpu = gen_workload(100, 1000, 9, job_scheduling, real_workload)
         print('workload: ', x_0)
-        # create clients for default scheduler
-        create_clients(9)
-        time.sleep(30)
-        print("Start Default Scheduler")
-        base_time, cluster_cpu_default = default_scheduler_run_tasks(task_cpu)
-        print("Base Time: ", base_time)
-        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
-        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
-        print("waiting for all jobs and deployment to be deleted")
-        time.sleep(40)
 
-        print('base time: ', base_time)
 
         print("Start Distributed Scheduler")
         server_node, HOSTNAME = node_init()
@@ -879,6 +868,22 @@ if __name__ == "__main__":
         print('consensus_time: ', consensus_time)
         print('job_schedule_time: ', job_schedule_time)
         print('execute_time: ', execute_time)
+
+        
+        # create clients for default scheduler
+        create_clients(9)
+        time.sleep(30)
+        print("Start Default Scheduler")
+        base_time, cluster_cpu_default = default_scheduler_run_tasks(task_cpu)
+        print("Base Time: ", base_time)
+        subprocess.check_output(["kubectl","delete", "jobs", "--all"])
+        subprocess.check_output(["kubectl","delete", "deployments", "--all", "--namespace", "default"])
+        print("waiting for all jobs and deployment to be deleted")
+        time.sleep(40)
+
+        print('base time: ', base_time)
+
+        
 
         default_cpu = {'caelum-103': 16.667, 'caelum-201': 8.333, 'caelum-214': 8.333, 'caelum-401': 8.333, 'caelum-402': 8.333, 'caelum-601': 16.667, 'caelum-602':16.667, 'caelum-603': 16.667, 'caelum-604': 16.667}
         for key, val in default_cpu.items():
