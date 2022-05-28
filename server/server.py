@@ -570,7 +570,7 @@ def run_tasks_real_workload(assignment,ip_node_dict, task_cpu):
             arr = l.split()
             complete += int(arr[1].split(b'/')[0])
         print('complete: ', complete)
-        if complete == total_tasks:
+        if complete >= total_tasks-3:
             break
         
         # complete = 0
@@ -639,7 +639,7 @@ def default_scheduler_run_tasks(task_cpu):
             arr = l.split()
             complete += int(arr[1].split(b'/')[0])
         print('complete: ', complete)
-        if complete == len(task_cpu):
+        if complete >= len(task_cpu)-3:
             break
 
         # complete = 0
@@ -887,14 +887,14 @@ if __name__ == "__main__":
 
         # myfile = open('../log_compare_cpu.txt', 'a')
         myfile = open('../log_compare_time.txt', 'a')
-        myfile.write(str(i) + '\n')
+        myfile.write(str(i) + " " + str(len(task_cpu)) + '\n')
         myfile.write(str(base_time) + '\n')
-        # myfile.write(json.dumps(cluster_cpu_default)+ '\n')
+        myfile.write(json.dumps(cluster_cpu_default)+ '\n')
         myfile.write(str(total_time) + '\n')
         myfile.write(str(consensus_time) + '\n')
         myfile.write(str(job_schedule_time) + '\n')
         myfile.write(str(execute_time) + '\n')
-        # myfile.write(json.dumps(cluster_cpu)+ '\n')
+        myfile.write(json.dumps(cluster_cpu)+ '\n')
         myfile.close()
 
 
