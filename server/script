@@ -11,3 +11,6 @@ sudo scp -r /Users/bradypeng/Desktop/MPhilProject/Week9/src cyp25@caelum-102.cl.
 
 On local machine, copy remote file to local
 scp cyp25@caelum-102.cl.cam.ac.uk:/home/cyp25/K8s-Consensus/log.txt /Users/bradypeng/Desktop/MPhilProject/Week9/log.txt
+
+
+scp cyp25@caelum-102.cl.cam.ac.uk:/home/cyp25/K8s-Consensus/log_compare_time.txt /Users/bradypeng/Desktop/MPhilProject/Week9/real_workload_log_compare_time.txt
