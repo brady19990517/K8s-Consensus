@@ -564,7 +564,9 @@ def run_tasks_real_workload(assignment,ip_node_dict, task_cpu):
         complete = 0
         lines = subprocess.check_output(["kubectl","get", "jobs"])
         line_arr = lines.split(b'\n')
-        for l in line_arr:
+        for i, l in enumerate(line_arr):
+            if i==0:
+                continue
             arr = l.split()
             complete += int(arr[1].split(b'/')[0])
         print('complete: ', complete)
@@ -631,7 +633,9 @@ def default_scheduler_run_tasks(task_cpu):
         complete = 0
         lines = subprocess.check_output(["kubectl","get", "jobs"])
         line_arr = lines.split(b'\n')
-        for l in line_arr:
+        for i,l in enumerate(line_arr):
+            if i==0:
+                continue
             arr = l.split()
             complete += int(arr[1].split(b'/')[0])
         print('complete: ', complete)
@@ -881,7 +885,8 @@ if __name__ == "__main__":
             cluster_cpu_default[key] = cluster_cpu_default[key] - val
             cluster_cpu[key] = cluster_cpu[key] - val
 
-        myfile = open('../log_compare_cpu.txt', 'a')
+        # myfile = open('../log_compare_cpu.txt', 'a')
+        myfile = open('../log_compare_time.txt', 'a')
         myfile.write(str(i) + '\n')
         myfile.write(str(base_time) + '\n')
         # myfile.write(json.dumps(cluster_cpu_default)+ '\n')
