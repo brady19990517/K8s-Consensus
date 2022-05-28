@@ -8,11 +8,11 @@ spec:
       containers:
       - name: busybox
         image: busybox
-        # command:
-        # - sleep
-        # - "30"
-        command: ["/bin/sh"]
-        args: ["-c", "while true; do echo hello; sleep 5;done"]
+        command:
+        - sleep
+        - "30"
+        # command: ["/bin/sh"]
+        # args: ["-c", "while true; do echo hello; sleep 5;done"]
         imagePullPolicy: IfNotPresent
         resources:
           requests:
