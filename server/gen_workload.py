@@ -14,9 +14,10 @@ def gen_workload(min_w:int, max_w:int, length:int, job_scheduling:bool, real_wor
                 if cpu <= 0.001:
                     continue
                 else:
-                    if np.random.uniform(low=0, high=1) < 0.001:
+                    if np.random.uniform(low=0, high=1) < 0.001 and len(task_cpu) < 250:
                         task_cpu.append(cpu*1000)
                         cpu_sum += cpu
+
         workload = []
         r = [random.random() for i in range(1,length+1)]
         s = sum(r)
